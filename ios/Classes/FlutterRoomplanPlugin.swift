@@ -3,7 +3,7 @@ import UIKit
 
 public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
-    let channel = FlutterMethodChannel(name: "flutter_roomplan", binaryMessenger: registrar.messenger())
+    let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: registrar.messenger())
     let instance = FlutterRoomplanPlugin()
     registrar.addMethodCallDelegate(instance, channel: channel)
   }

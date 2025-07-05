@@ -157,7 +157,7 @@ import Flutter
             if let jsonString = String(data: jsonData, encoding: .utf8) {
                 // Send data to Flutter via MethodChannel
                 if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
-                    let channel = FlutterMethodChannel(name: "in.yashodhankillekar/roomplan_launcher", binaryMessenger: controller.binaryMessenger)
+                    let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
                     channel.invokeMethod("onRoomCaptureFinished", arguments: jsonString)
                 }
             }

@@ -1,3 +1,4 @@
+import 'package:flutter_roomplan/types.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'flutter_roomplan_method_channel.dart';
@@ -27,7 +28,9 @@ abstract class FlutterRoomplanPlatform extends PlatformInterface {
     throw UnimplementedError('startScan() has not been implemented.');
   }
 
-  Future<void> stopScan() {
-    throw UnimplementedError('stopScan() has not been implemented.');
+  void onRoomCaptureFinished(CaptureFinishedHandler handler) {
+    throw UnimplementedError(
+      'onRoomCaptureFinished() has not been implemented.',
+    );
   }
 }

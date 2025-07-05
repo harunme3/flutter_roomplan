@@ -16,6 +16,14 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final _flutterRoomplanPlugin = FlutterRoomplan();
 
+  @override
+  void initState() {
+    super.initState();
+    _flutterRoomplanPlugin.onRoomCaptureFinished((resultJson) {
+      debugPrint('Room scan result: $resultJson');
+    });
+  }
+
   Future<void> _startRoomScan() async {
     try {
       await _flutterRoomplanPlugin.startScan();

@@ -1,3 +1,4 @@
+import 'package:flutter_roomplan/types.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_roomplan/flutter_roomplan.dart';
 import 'package:flutter_roomplan/flutter_roomplan_platform_interface.dart';
@@ -11,7 +12,7 @@ class MockFlutterRoomplanPlatform
   Future<void> startScan() => Future.value();
 
   @override
-  Future<void> stopScan() {
+  void onRoomCaptureFinished(CaptureFinishedHandler handler) {
     throw UnimplementedError();
   }
 }
