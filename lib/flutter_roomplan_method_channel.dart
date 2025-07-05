@@ -10,8 +10,7 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   final methodChannel = const MethodChannel('flutter_roomplan');
 
   @override
-  Future<String?> getPlatformVersion() async {
-    final version = await methodChannel.invokeMethod<String>('getPlatformVersion');
-    return version;
+  Future<void> startScan() async {
+    await methodChannel.invokeMethod<void>('startScan');
   }
 }

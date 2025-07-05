@@ -1,8 +1,7 @@
-
 import 'flutter_roomplan_platform_interface.dart';
 
 class FlutterRoomplan {
-  Future<String?> getPlatformVersion() {
-    return FlutterRoomplanPlatform.instance.getPlatformVersion();
+  Future<void> startScan() {
+    return FlutterRoomplanPlatform.instance.startScan();
   }
 }

@@ -10,8 +10,14 @@ public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
-    case "getPlatformVersion":
-      result("iOS " + UIDevice.current.systemVersion)
+    case "startScan":
+        DispatchQueue.main.async {
+        let rootVC = UIApplication.shared.delegate?.window??.rootViewController
+        let roomVC = RoomCaptureViewController()
+        roomVC.modalPresentationStyle = .fullScreen
+        rootVC?.present(roomVC, animated: true, completion: nil)
+      }
+      result(nil)
     default:
       result(FlutterMethodNotImplemented)
     }
