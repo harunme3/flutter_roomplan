@@ -1,15 +1,34 @@
-# flutter_roomplan
+# 🏠 flutter_roomplan
 
-A new Flutter plugin project.
+**Seamlessly integrate Apple's RoomPlan SDK into your Flutter apps**  
+Capture accurate 3D room scans using ARKit with this powerful plugin. Perfect for AR measurement, smart home, and interior design solutions.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter
-[plug-in package](https://flutter.dev/to/develop-plugins),
-a specialized package that includes platform-specific implementation code for
-Android and/or iOS.
+## ⚠️ Requirements
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **iOS 16+**
+- **ARKit-compatible device**:  
+  iPhone 12 or later, or recent iPad Pro
 
+---
+
+## 📌 Key Features
+
+- 📸 Launches native `RoomCaptureViewController` for full-screen AR scanning
+- 🪄 Captures room geometry + objects as structured JSON
+- 🔗 Simple Flutter API to start scans and handle results
+- 🚀 Returns complete `CapturedRoom` JSON specification
+
+---
+
+## 🚀 Quick Start
+
+### 1️⃣ Installation
+
+Add to `pubspec.yaml`:
+
+```yaml
+dependencies:
+  flutter_roomplan: ^1.1.0
+```

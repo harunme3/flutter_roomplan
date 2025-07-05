@@ -5,17 +5,17 @@
 Pod::Spec.new do |s|
   s.name             = 'flutter_roomplan'
   s.version          = '0.0.1'
-  s.summary          = 'A new Flutter plugin project.'
+  s.summary          = 'A Flutter plugin for Apple\'s RoomPlan API that allows room scanning and USDZ export on iOS devices.'
   s.description      = <<-DESC
-A new Flutter plugin project.
+A Flutter plugin for Apple's RoomPlan API that allows room scanning and USDZ export on iOS devices.
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://github.com/harunme3/flutter_roomplan'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Your Company' => 'email@example.com' }
+  s.author           = { 'Rahul Gupta' => 'rkg87653@gmail.com' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.platform = :ios, '12.0'
+  s.platform = :ios, '16.0'
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
