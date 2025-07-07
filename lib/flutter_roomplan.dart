@@ -13,4 +13,10 @@ class FlutterRoomplan {
   Future<bool> isSupported() {
     return FlutterRoomplanPlatform.instance.isSupported();
   }
+
+  /// Returns the file path of the exported USDZ file from the last room scan.
+  /// Returns null if no scan has been completed or if the export failed.
+  Future<String?> getUsdzFilePath() {
+    return FlutterRoomplanPlatform.instance.getUsdzFilePath();
+  }
 }

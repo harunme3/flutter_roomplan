@@ -20,6 +20,12 @@ public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
       result(nil)
     case "isSupported":
       result(RoomCaptureViewController.isSupported())
+    case "getUsdzFilePath":
+      if let roomVC = UIApplication.shared.delegate?.window??.rootViewController?.presentedViewController as? RoomCaptureViewController {
+        result(roomVC.usdzFilePath)
+      } else {
+        result(FlutterError(code: "NO_SCAN", message: "No active room scan found", details: nil))
+      }
     default:
       result(FlutterMethodNotImplemented)
     }
