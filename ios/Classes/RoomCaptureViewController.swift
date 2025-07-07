@@ -4,6 +4,7 @@ import Flutter
 
 @objc public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegate, RoomCaptureSessionDelegate {
 
+
     private var isScanning = false
     private var roomCaptureView: RoomCaptureView!
     private var roomCaptureSessionConfig = RoomCaptureSession.Configuration()
@@ -19,6 +20,13 @@ import Flutter
         setupUI()
         setupRoomCaptureView()
         activityIndicator.stopAnimating()
+    }
+
+    @objc public static func isSupported() -> Bool {
+        if #available(iOS 16.0, *) {
+            return RoomCaptureSession.isSupported
+        }
+        return false
     }
 
     private func setupUI() {
