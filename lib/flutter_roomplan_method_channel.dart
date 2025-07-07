@@ -28,4 +28,10 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   void onRoomCaptureFinished(CaptureFinishedHandler handler) {
     _captureFinishedHandler = handler;
   }
+
+  @override
+  Future<bool> isSupported() async {
+    final bool? result = await methodChannel.invokeMethod<bool>('isSupported');
+    return result ?? false;
+  }
 }

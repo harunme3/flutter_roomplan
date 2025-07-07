@@ -10,4 +10,8 @@ class FlutterRoomplan {
   void onRoomCaptureFinished(CaptureFinishedHandler handler) {
     FlutterRoomplanPlatform.instance.onRoomCaptureFinished(handler);
   }
+
+  Future<bool> isSupported() {
+    return FlutterRoomplanPlatform.instance.isSupported();
+  }
 }

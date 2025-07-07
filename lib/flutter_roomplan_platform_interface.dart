@@ -33,4 +33,8 @@ abstract class FlutterRoomplanPlatform extends PlatformInterface {
       'onRoomCaptureFinished() has not been implemented.',
     );
   }
+
+  Future<bool> isSupported() {
+    throw UnimplementedError('isSupported() has not been implemented.');
+  }
 }

@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import RoomPlan
 
 public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
@@ -18,6 +19,12 @@ public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
         rootVC?.present(roomVC, animated: true, completion: nil)
       }
       result(nil)
+    case "isSupported":
+      if #available(iOS 16.0, *) {
+        result(RoomCaptureSession.isSupported)
+      } else {
+        result(false)
+      }
     default:
       result(FlutterMethodNotImplemented)
     }
