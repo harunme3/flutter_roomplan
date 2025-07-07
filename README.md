@@ -25,6 +25,16 @@ Capture accurate 3D room scans using ARKit with this powerful plugin. Perfect fo
 
 ---
 
+## 🔍 Data Structure
+
+The following diagram shows the structure of the captured room data:
+
+![RoomPlan Data Structure](assets/roomplan_structure.png)
+
+> The green nodes indicate updates from WWDC 2023 (iOS 17)
+
+---
+
 ## 🚀 Quick Start
 
 ### 1️⃣ Installation
@@ -91,6 +101,34 @@ Check out the [example app](example/lib/main.dart) for a complete implementation
 - Result handling
 - USDZ file path retrieval
 - Error management
+
+---
+
+## ⚠️ Limitations
+
+### Multiple Rooms Scanning
+
+- Can produce inaccurate data during extended scanning sessions
+- Device may experience overheating on longer scans
+- Best practice: Scan one room at a time with cooling breaks between scans
+
+### Surface Shape Detection
+
+- Limited to rectangular and square surface detection
+- Cannot accurately detect curved edges or irregular shapes
+- Assumes all surfaces are planar with right angles
+
+### Phantom Object Detection
+
+- May occasionally detect non-existent objects
+- Can produce false positives in complex lighting conditions
+- Recommend verifying critical measurements manually
+
+### Object Detection Limits
+
+- Currently restricted to 16 types of household objects
+- Limited to common furniture and fixture categories
+- May not recognize specialized or custom furniture pieces
 
 ---
 
