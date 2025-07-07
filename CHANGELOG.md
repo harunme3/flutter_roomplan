@@ -1,3 +1,7 @@
+## 0.0.4
+
+- Bug Fixes
+
 ## 0.0.3
 
 - Added RoomPlan scanning functionality
