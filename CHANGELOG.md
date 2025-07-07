@@ -1,7 +1,16 @@
+## 0.0.3
+
+- Added RoomPlan scanning functionality
+- Added USDZ export support
+- Improved iOS integration
+- Added documentation and example project
+
+## 0.0.2
+
+- Added On Finished Handler
+- Initial implementation of RoomPlan API integration
+
 ## 0.0.1
 
-- TODO: Initial draft version for RoomPlan.
-
-## 0.0.1
-
-- TODO: Add On Finished Handler.
+- Initial release
+- Basic project structure setup
