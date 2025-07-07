@@ -1,6 +1,6 @@
 name: flutter_roomplan
 description: "A Flutter plugin for Apple's RoomPlan API that allows room scanning and USDZ export on iOS devices."
-version: 0.0.3
+version: 0.0.4
 homepage: https://github.com/harunme3/flutter_roomplan
 
 environment:

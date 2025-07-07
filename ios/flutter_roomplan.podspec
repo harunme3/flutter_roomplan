@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'flutter_roomplan'
-  s.version          = '0.0.2'
+  s.version          = '0.0.4'
   s.summary          = 'A Flutter plugin for Apple\'s RoomPlan API that allows room scanning and USDZ export on iOS devices.'
   s.description      = <<-DESC
 A Flutter plugin for Apple's RoomPlan API that allows room scanning and USDZ export on iOS devices.
