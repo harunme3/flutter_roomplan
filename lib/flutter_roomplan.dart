@@ -1,5 +1,4 @@
-import 'package:flutter_roomplan/types.dart';
-
+import 'package:flutter_roomplan/payloads.dart';
 import 'flutter_roomplan_platform_interface.dart';
 
 class FlutterRoomplan {

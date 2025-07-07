@@ -1,6 +1,5 @@
-import 'package:flutter_roomplan/types.dart';
+import 'package:flutter_roomplan/payloads.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-
 import 'flutter_roomplan_method_channel.dart';
 
 abstract class FlutterRoomplanPlatform extends PlatformInterface {
