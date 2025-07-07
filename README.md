@@ -130,6 +130,8 @@ Check out the [example app](example/lib/main.dart) for a complete implementation
 - Limited to common furniture and fixture categories
 - May not recognize specialized or custom furniture pieces
 
+![RoomPlan Supported Objects](assets/object.png)
+
 ---
 
 ## 📄 License
