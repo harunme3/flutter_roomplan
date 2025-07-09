@@ -17,6 +17,7 @@ class _MyAppState extends State<MyApp> {
   final _flutterRoomplanPlugin = FlutterRoomplan();
   bool _isSupported = false;
   String? _lastUsdzFilePath;
+  String? _lastJsonFilePath;
 
   @override
   void initState() {
@@ -24,10 +25,12 @@ class _MyAppState extends State<MyApp> {
     _checkSupport();
     _flutterRoomplanPlugin.onRoomCaptureFinished((resultJson) async {
       debugPrint('Room scan result: $resultJson');
-      // Get the USDZ file path after scan is complete
+      // Get the USDZ and JSON file paths after scan is complete
       final usdzPath = await _flutterRoomplanPlugin.getUsdzFilePath();
+      final jsonPath = await _flutterRoomplanPlugin.getJsonFilePath();
       setState(() {
         _lastUsdzFilePath = usdzPath;
+        _lastJsonFilePath = jsonPath;
       });
     });
   }
@@ -89,6 +92,14 @@ class _MyAppState extends State<MyApp> {
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
                     'Last scan USDZ file:\n$_lastUsdzFilePath',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              if (_lastJsonFilePath != null)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'Last scan JSON file:\n$_lastJsonFilePath',
                     textAlign: TextAlign.center,
                   ),
                 ),

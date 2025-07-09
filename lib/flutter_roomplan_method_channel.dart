@@ -48,4 +48,12 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
     );
     return result;
   }
+
+  @override
+  Future<String?> getJsonFilePath() async {
+    final String? result = await methodChannel.invokeMethod<String>(
+      'getJsonFilePath',
+    );
+    return result;
+  }
 }

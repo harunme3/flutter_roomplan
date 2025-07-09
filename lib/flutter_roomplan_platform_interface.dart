@@ -40,4 +40,8 @@ abstract class FlutterRoomplanPlatform extends PlatformInterface {
   Future<String?> getUsdzFilePath() {
     throw UnimplementedError('getUsdzFilePath() has not been implemented.');
   }
+
+  Future<String?> getJsonFilePath() {
+    throw UnimplementedError('getJsonFilePath() has not been implemented.');
+  }
 }

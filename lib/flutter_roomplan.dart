@@ -19,4 +19,10 @@ class FlutterRoomplan {
   Future<String?> getUsdzFilePath() {
     return FlutterRoomplanPlatform.instance.getUsdzFilePath();
   }
+
+  /// Returns the file path of the exported JSON file from the last room scan.
+  /// Returns null if no scan has been completed or if the export failed.
+  Future<String?> getJsonFilePath() {
+    return FlutterRoomplanPlatform.instance.getJsonFilePath();
+  }
 }
