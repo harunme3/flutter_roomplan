@@ -11,9 +11,12 @@ public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "startScan":
+        let arguments = call.arguments as? [String: Any]
+        let enableMultiRoom = arguments?["enableMultiRoom"] as? Bool ?? false
         DispatchQueue.main.async {
         let rootVC = UIApplication.shared.delegate?.window??.rootViewController
         let roomVC = RoomCaptureViewController()
+        roomVC.enableMultiRoomMode = enableMultiRoom
         roomVC.modalPresentationStyle = .fullScreen
         rootVC?.present(roomVC, animated: true, completion: nil)
       }

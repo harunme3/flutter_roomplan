@@ -4,11 +4,12 @@ import Flutter
 
 @objc public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegate, RoomCaptureSessionDelegate {
 
-
+    public var enableMultiRoomMode: Bool = false
     private var isScanning = false
     private var roomCaptureView: RoomCaptureView!
     private var roomCaptureSessionConfig = RoomCaptureSession.Configuration()
     private var finalResults: CapturedRoom?
+    
     
     public  var usdzFilePath: String?
     public  var jsonFilePath: String?
@@ -116,7 +117,7 @@ import Flutter
 
     private func stopSession() {
         isScanning = false
-        roomCaptureView.captureSession.stop()
+        roomCaptureView.captureSession.stop(pauseARSession: enableMultiRoomMode)
 
         // Show Finish button
         finishButton.isHidden = false

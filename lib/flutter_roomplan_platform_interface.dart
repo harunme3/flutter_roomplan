@@ -23,7 +23,7 @@ abstract class FlutterRoomplanPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<void> startScan() {
+  Future<void> startScan({bool enableMultiRoom = false}) {
     throw UnimplementedError('startScan() has not been implemented.');
   }
 

@@ -2,8 +2,8 @@ import 'package:flutter_roomplan/payloads.dart';
 import 'flutter_roomplan_platform_interface.dart';
 
 class FlutterRoomplan {
-  Future<void> startScan() {
-    return FlutterRoomplanPlatform.instance.startScan();
+  Future<void> startScan({bool enableMultiRoom = false}) {
+    return FlutterRoomplanPlatform.instance.startScan(enableMultiRoom: enableMultiRoom);
   }
 
   void onRoomCaptureFinished(CaptureFinishedHandler handler) {
