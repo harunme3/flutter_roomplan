@@ -10,7 +10,7 @@ import Flutter
     private var roomCaptureSessionConfig = RoomCaptureSession.Configuration()
     private var finalResults: CapturedRoom?
     // create structureBuilder instance
-    let structureBuilder = StructureBuilder(option: [.beautifyObjects])
+    let structureBuilder = StructureBuilder(options: [.beautifyObjects])
 
     // load multiple capturedRoom results to capturedRoomArray
     var capturedRoomArray: [CapturedRoom] = []
