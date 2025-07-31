@@ -13,7 +13,8 @@ import ARKit
 
     // load multiple capturedRoom results to capturedRoomArray
     var capturedRoomArray: [CapturedRoom] = []
-    
+    public var worldMapData: Data?
+
     
     public  var usdzFilePath: String?
     public  var jsonFilePath: String?
@@ -109,16 +110,29 @@ import ARKit
     private func startSession() {
         isScanning = true
 
-        // load ARWorldMap
-        let arWorldMap = try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: data)
+        // Load ARWorldMap if worldMapData exists
 
-        // run ARKit relocalization
+    if let arWorldMapData = arWorldMapData {
+        do {
+            let arWorldMap = try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: arWorldMapData)
+            
+            // Run ARKit relocalization
+            let arWorldTrackingConfig = ARWorldTrackingConfiguration()
+            arWorldTrackingConfig.initialWorldMap = arWorldMap
+            roomCaptureView.captureSession.arSession.run(arWorldTrackingConfig, options: [])
+        } catch {
+            print("Failed to load ARWorldMap: \(error)")
+            // Continue without world map
+            let arWorldTrackingConfig = ARWorldTrackingConfiguration()
+            roomCaptureView.captureSession.arSession.run(arWorldTrackingConfig, options: [])
+        }
+    } else {
+        // Start without existing world map
         let arWorldTrackingConfig = ARWorldTrackingConfiguration()
-        arWorldTrackingConfig.initialWorldMap = arWorldMap
-        roomCaptureView.captureSession.init()
         roomCaptureView.captureSession.arSession.run(arWorldTrackingConfig, options: [])
+    }
 
-        roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
+       roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
         
         // Hide Finish button
         finishButton.isHidden = true
@@ -145,7 +159,12 @@ import ARKit
                     print("Error getting current world map: \(error)")
                 } else if let worldMap = worldMap {
                     print("World map captured successfully.")
-                    // Save worldMap
+                // Save worldMap
+                do {
+                    self.arWorldMapData = try NSKeyedArchiver.archivedData(withRootObject: worldMap, requiringSecureCoding: true)
+                } catch {
+                    print("Failed to archive world map: \(error)")
+                }
                 }
             }
         }
