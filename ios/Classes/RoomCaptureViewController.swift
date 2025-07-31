@@ -10,6 +10,7 @@ import Flutter
     private var roomCaptureSessionConfig = RoomCaptureSession.Configuration()
     private var finalResults: CapturedRoom?
     // create structureBuilder instance
+    @available(iOS 17.0, *)
     let structureBuilder = StructureBuilder(options: [.beautifyObjects])
 
     // load multiple capturedRoom results to capturedRoomArray
