@@ -1,6 +1,7 @@
 import UIKit
 import RoomPlan
 import Flutter
+import ARKit
 
 @objc public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegate, RoomCaptureSessionDelegate {
 
@@ -30,7 +31,7 @@ import Flutter
     }
 
     @objc public static func isSupported() -> Bool {
-        if #available(iOS 16.0, *) {
+        if #available(iOS 17.0, *) {
             return RoomCaptureSession.isSupported
         }
         return false
@@ -130,7 +131,12 @@ import Flutter
 
     private func stopSession() {
         isScanning = false
+                // Check iOS version for stop method
+        if #available(iOS 17.0, *) {
         roomCaptureView.captureSession.stop(pauseARSession: enableMultiRoomMode)
+        } else {
+            roomCaptureView.captureSession.stop()
+        }
 
         //save ARWorldMap
         if enableMultiRoomMode {
