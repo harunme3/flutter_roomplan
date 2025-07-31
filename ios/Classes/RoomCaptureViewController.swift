@@ -112,9 +112,9 @@ import ARKit
 
         // Load ARWorldMap if worldMapData exists
 
-    if let arWorldMapData = arWorldMapData {
+    if let worldMapData = worldMapData {
         do {
-            let arWorldMap = try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: arWorldMapData)
+            let arWorldMap = try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: worldMapData)
             
             // Run ARKit relocalization
             let arWorldTrackingConfig = ARWorldTrackingConfiguration()
@@ -159,12 +159,14 @@ import ARKit
                     print("Error getting current world map: \(error)")
                 } else if let worldMap = worldMap {
                     print("World map captured successfully.")
-                // Save worldMap
-                do {
-                    self.arWorldMapData = try NSKeyedArchiver.archivedData(withRootObject: worldMap, requiringSecureCoding: true)
-                } catch {
-                    print("Failed to archive world map: \(error)")
-                }
+                    // Save worldMap
+                     do {
+                let worldMapData = try NSKeyedArchiver.archivedData(withRootObject: worldMap, requiringSecureCoding: true)
+                self.worldMapData = worldMapData
+            } catch {
+                print("Failed to archive world map: \(error)")
+            }
+                    
                 }
             }
         }
