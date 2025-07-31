@@ -9,9 +9,6 @@ import Flutter
     private var roomCaptureView: RoomCaptureView!
     private var roomCaptureSessionConfig = RoomCaptureSession.Configuration()
     private var finalResults: CapturedRoom?
-    // create structureBuilder instance
-    @available(iOS 17.0, *)
-    let structureBuilder = StructureBuilder(options: [.beautifyObjects])
 
     // load multiple capturedRoom results to capturedRoomArray
     var capturedRoomArray: [CapturedRoom] = []
@@ -166,26 +163,37 @@ import Flutter
         return true
     }
 
+
     private func exportToUSDZ() {
-        guard let finalResults = finalResults else { return }
-        let capturedStructure = try await structureBuilder.capturedStructure(from: capturedRoomArray)
-        do {
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let roomScansFolder = documentsPath.appendingPathComponent("RoomScans")
-            
-            // Create the RoomScans directory if it doesn't exist
-            if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
-                try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
+    guard let finalResults = finalResults else { return }
+
+    if #available(iOS 17.0, *) {
+        Task {
+            do {
+                let structureBuilder = StructureBuilder(options: [.beautifyObjects])
+                let capturedStructure = try await structureBuilder.capturedStructure(from: capturedRoomArray)
+
+                let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                let roomScansFolder = documentsPath.appendingPathComponent("RoomScans")
+
+                if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
+                    try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
+                }
+
+                let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
+                let fileURL = roomScansFolder.appendingPathComponent(fileName)
+
+                try capturedStructure.export(to: fileURL)
+                self.usdzFilePath = fileURL.path
+            } catch {
+                print("Failed to export USDZ file: \(error)")
             }
-            
-            let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
-            let fileURL = roomScansFolder.appendingPathComponent(fileName)
-            try capturedStructure.export(to: fileURL)
-            self.usdzFilePath = fileURL.path
-        } catch {
-            print("Failed to export USDZ file: \(error)")
+        }
+        } else {
+            print("USDZ export is only supported on iOS 17.0 or newer")
         }
     }
+
 
     private func exportToJSON() {
         guard let finalResults = finalResults else { return }
