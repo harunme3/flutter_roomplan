@@ -9,6 +9,11 @@ import Flutter
     private var roomCaptureView: RoomCaptureView!
     private var roomCaptureSessionConfig = RoomCaptureSession.Configuration()
     private var finalResults: CapturedRoom?
+    // create structureBuilder instance
+    let structureBuilder = StructureBuilder(option: [.beautifyObjects])
+
+    // load multiple capturedRoom results to capturedRoomArray
+    var capturedRoomArray: [CapturedRoom] = []
     
     
     public  var usdzFilePath: String?
@@ -104,6 +109,16 @@ import Flutter
 
     private func startSession() {
         isScanning = true
+
+        // load ARWorldMap
+        let arWorldMap = try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: data)
+
+        // run ARKit relocalization
+        let arWorldTrackingConfig = ARWorldTrackingConfiguration()
+        arWorldTrackingConfig.initialWorldMap = arWorldMap
+        roomCaptureView.captureSession.init()
+        roomCaptureView.captureSession.arSession.run(arWorldTrackingConfig, options: [])
+
         roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
         
         // Hide Finish button
@@ -118,6 +133,19 @@ import Flutter
     private func stopSession() {
         isScanning = false
         roomCaptureView.captureSession.stop(pauseARSession: enableMultiRoomMode)
+
+        //save ARWorldMap
+        if enableMultiRoomMode {
+            roomCaptureView.captureSession.arSession.getCurrentWorldMap { worldMap, error in
+                if let error = error {
+                    print("Error getting current world map: \(error)")
+                } else if let worldMap = worldMap {
+                    print("World map captured successfully.")
+                    // Save worldMap
+                }
+            }
+        }
+
 
         // Show Finish button
         finishButton.isHidden = false
@@ -139,7 +167,7 @@ import Flutter
 
     private func exportToUSDZ() {
         guard let finalResults = finalResults else { return }
-        
+        let capturedStructure = try await structureBuilder.capturedStructure(from: capturedRoomArray)
         do {
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let roomScansFolder = documentsPath.appendingPathComponent("RoomScans")
@@ -151,7 +179,7 @@ import Flutter
             
             let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
             let fileURL = roomScansFolder.appendingPathComponent(fileName)
-            try finalResults.export(to: fileURL)
+            try capturedStructure.export(to: fileURL)
             self.usdzFilePath = fileURL.path
         } catch {
             print("Failed to export USDZ file: \(error)")
@@ -186,12 +214,13 @@ import Flutter
 
     public func captureView(didPresent processedResult: CapturedRoom, error: Error?) {
         finalResults = processedResult
+        capturedRoomArray.append(processedResult)
         finishButton.isEnabled = true
         activityIndicator.stopAnimating()
         
         // Export USDZ file & JSON file
         exportToUSDZ()
-        exportToJSON()
+       // exportToJSON()
     }
 
     @objc private func doneScanning() {
