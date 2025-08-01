@@ -180,6 +180,8 @@ import ARKit
     private func exportToUSDZ() {
     guard let finalResults = finalResults else { return }
 
+      print("Captured exportToUSDZ rooms count: \(capturedRoomArray.count)") // <-- Print array length
+
     if #available(iOS 17.0, *) {
         Task {
             do {
@@ -208,42 +210,16 @@ import ARKit
     }
 
 
-    private func exportToJSON() {
-        guard let finalResults = finalResults else { return }
-        
-        do {
-            let jsonEncoder = JSONEncoder()
-            jsonEncoder.outputFormatting = [.prettyPrinted]
-            let jsonData = try jsonEncoder.encode(finalResults)
-            
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let roomScansFolder = documentsPath.appendingPathComponent("RoomScans")
-
-             // Create the RoomScans directory if it doesn't exist
-            if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
-                try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
-            }
-
-            let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).json"
-            let fileURL = roomScansFolder.appendingPathComponent(fileName)
-            
-            try jsonData.write(to: fileURL)
-            self.jsonFilePath = fileURL.path
-        } catch {
-            print("Failed to export JSON file: \(error)")
-        }
-    }
-
     public func captureView(didPresent processedResult: CapturedRoom, error: Error?) {
         finalResults = processedResult
         capturedRoomArray.append(processedResult)
+         print("Captured rooms count: \(capturedRoomArray.count)") // <-- Print array length
         finishButton.isEnabled = true
             scanOtherRoomsButton.isEnabled = true
         activityIndicator.stopAnimating()
         
-        // Export USDZ file & JSON file
+        // Export USDZ file
         exportToUSDZ()
-       // exportToJSON()
     }
 
     @objc private func doneScanning() {
