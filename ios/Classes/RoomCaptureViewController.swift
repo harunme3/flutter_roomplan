@@ -13,13 +13,13 @@ import ARKit
 
     // load multiple capturedRoom results to capturedRoomArray
     var capturedRoomArray: [CapturedRoom] = []
-    public var worldMapData: Data?
 
     
     public  var usdzFilePath: String?
     public  var jsonFilePath: String?
 
     private let finishButton = UIButton(type: .system)
+    private let scanOtherRoomsButton = UIButton(type: .system)
     private let activityIndicator = UIActivityIndicatorView(style: .large)
     private let cancelButton = UIButton(type: .system)
     private let doneButton = UIButton(type: .system)
@@ -51,6 +51,17 @@ import ARKit
         finishButton.layer.cornerRadius = 12
         finishButton.addTarget(self, action: #selector(finishAndReturnResult), for: .touchUpInside)
 
+        // ADDED: Configure Scan Other Rooms Button for multi-room functionality
+        scanOtherRoomsButton.setTitle("Scan Other Rooms", for: .normal)
+        scanOtherRoomsButton.isEnabled = false
+        scanOtherRoomsButton.isHidden = true
+        scanOtherRoomsButton.alpha = 0.0
+        scanOtherRoomsButton.backgroundColor = UIColor.systemGreen
+        scanOtherRoomsButton.setTitleColor(.white, for: .normal)
+        scanOtherRoomsButton.layer.cornerRadius = 12
+        scanOtherRoomsButton.addTarget(self, action: #selector(scanOtherRooms), for: .touchUpInside)
+
+
         // Configure Cancel and Done Buttons
         cancelButton.setTitle("Cancel", for: .normal)
         cancelButton.addTarget(self, action: #selector(cancelScanning), for: .touchUpInside)
@@ -59,7 +70,7 @@ import ARKit
         doneButton.addTarget(self, action: #selector(doneScanning), for: .touchUpInside)
 
         // Add subviews
-        [finishButton, cancelButton, doneButton, activityIndicator].forEach {
+        [finishButton,scanOtherRoomsButton, cancelButton, doneButton, activityIndicator].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview($0)
         }
@@ -76,6 +87,13 @@ import ARKit
             finishButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30),
             finishButton.widthAnchor.constraint(equalToConstant: 120),
             finishButton.heightAnchor.constraint(equalToConstant: 44),
+
+            // ADDED: Layout constraints for scan other rooms button
+            scanOtherRoomsButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            scanOtherRoomsButton.topAnchor.constraint(equalTo: finishButton.bottomAnchor, constant: 15),
+            scanOtherRoomsButton.widthAnchor.constraint(equalToConstant: 160),
+            scanOtherRoomsButton.heightAnchor.constraint(equalToConstant: 44),
+
 
             activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
@@ -109,34 +127,14 @@ import ARKit
 
     private func startSession() {
         isScanning = true
-
-        // Load ARWorldMap if worldMapData exists
-
-    if let worldMapData = worldMapData {
-        do {
-            let arWorldMap = try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: worldMapData)
-            
-            // Run ARKit relocalization
-            let arWorldTrackingConfig = ARWorldTrackingConfiguration()
-            arWorldTrackingConfig.initialWorldMap = arWorldMap
-            roomCaptureView.captureSession.arSession.run(arWorldTrackingConfig, options: [])
-        } catch {
-            print("Failed to load ARWorldMap: \(error)")
-            // Continue without world map
-            let arWorldTrackingConfig = ARWorldTrackingConfiguration()
-            roomCaptureView.captureSession.arSession.run(arWorldTrackingConfig, options: [])
-        }
-    } else {
-        // Start without existing world map
-        let arWorldTrackingConfig = ARWorldTrackingConfiguration()
-        roomCaptureView.captureSession.arSession.run(arWorldTrackingConfig, options: [])
-    }
-
        roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
         
         // Hide Finish button
         finishButton.isHidden = true
         finishButton.alpha = 0.0
+
+        scanOtherRoomsButton.isHidden = true
+        scanOtherRoomsButton.alpha = 0.0
 
         // Show Done button again (in case it was hidden before)
         doneButton.isHidden = false
@@ -147,28 +145,9 @@ import ARKit
         isScanning = false
                 // Check iOS version for stop method
         if #available(iOS 17.0, *) {
-        roomCaptureView.captureSession.stop(pauseARSession: enableMultiRoomMode)
+        roomCaptureView.captureSession.stop(pauseARSession: !enableMultiRoomMode)
         } else {
             roomCaptureView.captureSession.stop()
-        }
-
-        //save ARWorldMap
-        if enableMultiRoomMode {
-            roomCaptureView.captureSession.arSession.getCurrentWorldMap { worldMap, error in
-                if let error = error {
-                    print("Error getting current world map: \(error)")
-                } else if let worldMap = worldMap {
-                    print("World map captured successfully.")
-                    // Save worldMap
-                     do {
-                let worldMapData = try NSKeyedArchiver.archivedData(withRootObject: worldMap, requiringSecureCoding: true)
-                self.worldMapData = worldMapData
-            } catch {
-                print("Failed to archive world map: \(error)")
-            }
-                    
-                }
-            }
         }
 
 
@@ -176,6 +155,13 @@ import ARKit
         finishButton.isHidden = false
         UIView.animate(withDuration: 0.3) {
             self.finishButton.alpha = 1.0
+        }
+
+            if enableMultiRoomMode {
+        scanOtherRoomsButton.isHidden = false
+        UIView.animate(withDuration: 0.3) {
+            self.scanOtherRoomsButton.alpha = 1.0
+            }
         }
 
         // Hide Done button
@@ -252,6 +238,7 @@ import ARKit
         finalResults = processedResult
         capturedRoomArray.append(processedResult)
         finishButton.isEnabled = true
+            scanOtherRoomsButton.isEnabled = true
         activityIndicator.stopAnimating()
         
         // Export USDZ file & JSON file
@@ -266,6 +253,7 @@ import ARKit
             cancelScanning()
         }
         finishButton.isEnabled = false
+        scanOtherRoomsButton.isEnabled = false
         activityIndicator.startAnimating()
     }
 
@@ -294,5 +282,25 @@ import ARKit
         }
 
         self.dismiss(animated: true)
+    }
+
+
+     // ADDED: New method to handle scanning additional rooms in multi-room mode
+    @objc private func scanOtherRooms() {
+        // Reset the current room scanning state
+        finalResults = nil
+        
+        // Hide the buttons and start a new scanning session
+        finishButton.isEnabled = false
+        scanOtherRoomsButton.isEnabled = false
+        
+        UIView.animate(withDuration: 0.3) {
+            self.finishButton.alpha = 0.0
+            self.scanOtherRoomsButton.alpha = 0.0
+        } completion: { _ in
+            self.finishButton.isHidden = true
+            self.scanOtherRoomsButton.isHidden = true
+            self.startSession()
+        }
     }
 }
