@@ -26,7 +26,9 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
 
   @override
   Future<void> startScan({bool enableMultiRoom = false}) async {
-    await methodChannel.invokeMethod<void>('startScan', {'enableMultiRoom': enableMultiRoom});
+    await methodChannel.invokeMethod<void>('startScan', {
+      'enableMultiRoom': enableMultiRoom,
+    });
   }
 
   @override

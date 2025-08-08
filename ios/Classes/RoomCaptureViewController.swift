@@ -160,7 +160,7 @@ private func setupUI() {
             self.finishButton.alpha = 1.0
         }
 
-            if enableMultiRoomMode {
+        if enableMultiRoomMode {
         scanOtherRoomsButton.isHidden = false
         UIView.animate(withDuration: 0.3) {
             self.scanOtherRoomsButton.alpha = 1.0
