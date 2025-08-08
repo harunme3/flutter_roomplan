@@ -25,7 +25,8 @@ class _MyAppState extends State<MyApp> {
     _checkSupport();
     _flutterRoomplanPlugin.onRoomCaptureFinished((resultJson) async {
       debugPrint('Room scan result: $resultJson');
-      // Get the USDZ and JSON file paths after scan is complete
+
+      /// Get the USDZ and JSON file paths after scan is complete
       final usdzPath = await _flutterRoomplanPlugin.getUsdzFilePath();
       final jsonPath = await _flutterRoomplanPlugin.getJsonFilePath();
       setState(() {
