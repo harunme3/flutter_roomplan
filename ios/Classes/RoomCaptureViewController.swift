@@ -200,8 +200,7 @@ import ARKit
     private func exportToJSON() {
         guard let finalResults = finalResults else { return }
         
-        print("Captured exportToJSON rooms count: \(capturedRoomArray.count)")
-        
+
         do {
             let jsonEncoder = JSONEncoder()
             jsonEncoder.outputFormatting = [.prettyPrinted]
@@ -238,7 +237,6 @@ import ARKit
     private func exportToUSDZ() {
         guard let finalResults = finalResults else { return }
 
-        print("Captured exportToUSDZ rooms count: \(capturedRoomArray.count)")
 
         if #available(iOS 17.0, *) {
             Task {
@@ -250,7 +248,7 @@ import ARKit
                     if enableMultiRoomMode {
                         capturedStructure = try await structureBuilder.capturedStructure(from: capturedRoomArray)
                     } else {
-                        capturedStructure = try await structureBuilder.capturedStructure(from: finalResults)
+                        capturedStructure = try await structureBuilder.capturedStructure(from: [finalResults])
                     }
 
                     let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -273,9 +271,7 @@ import ARKit
             // For iOS 16.0, use the single room export method
             Task {
                 do {
-                    let structureBuilder = StructureBuilder(options: [.beautifyObjects])
-                    let capturedStructure = try await structureBuilder.capturedStructure(from: finalResults)
-
+               
                     let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                     let roomScansFolder = documentsPath.appendingPathComponent("RoomScans")
 
@@ -286,7 +282,7 @@ import ARKit
                     let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
                     let fileURL = roomScansFolder.appendingPathComponent(fileName)
 
-                    try capturedStructure.export(to: fileURL)
+                    try finalResults.export(to: fileURL)
                     self.usdzFilePath = fileURL.path
                 } catch {
                     print("Failed to export USDZ file: \(error)")
@@ -300,7 +296,6 @@ import ARKit
     public func captureView(didPresent processedResult: CapturedRoom, error: Error?) {
         finalResults = processedResult
         capturedRoomArray.append(processedResult)
-        print("Captured rooms count: \(capturedRoomArray.count)")
         finishButton.isEnabled = true
         
         // Only enable scan other rooms button on iOS 17.0+ with multi-room mode
