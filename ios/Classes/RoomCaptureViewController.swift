@@ -32,76 +32,90 @@ import ARKit
     }
 
     @objc public static func isSupported() -> Bool {
-        if #available(iOS 17.0, *) {
+        if #available(iOS 16.0, *) {
             return RoomCaptureSession.isSupported
         }
         return false
     }
 
- // Replace the existing button configuration in setupUI() method
+    // Replace the existing button configuration in setupUI() method
+    private func setupUI() {
+        view.backgroundColor = .white
 
-private func setupUI() {
-    view.backgroundColor = .white
+        // Configure Finish Button - Filled style
+        finishButton.setTitle("Finish", for: .normal)
+        finishButton.isEnabled = false
+        finishButton.isHidden = true
+        finishButton.alpha = 0.0
+        finishButton.backgroundColor = UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0)
+        finishButton.setTitleColor(.white, for: .normal)
+        finishButton.layer.cornerRadius = 12
+        finishButton.addTarget(self, action: #selector(finishAndReturnResult), for: .touchUpInside)
 
-    // Configure Finish Button - Filled style
-    finishButton.setTitle("Finish", for: .normal)
-    finishButton.isEnabled = false
-    finishButton.isHidden = true
-    finishButton.alpha = 0.0
-    finishButton.backgroundColor = UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0)
-    finishButton.setTitleColor(.white, for: .normal)
-    finishButton.layer.cornerRadius = 12
-    finishButton.addTarget(self, action: #selector(finishAndReturnResult), for: .touchUpInside)
+        // Configure Scan Other Rooms Button - Outlined style (only show on iOS 17.0+)
+        scanOtherRoomsButton.setTitle("Scan Other Rooms", for: .normal)
+        scanOtherRoomsButton.isEnabled = false
+        scanOtherRoomsButton.isHidden = true
+        scanOtherRoomsButton.alpha = 0.0
+        scanOtherRoomsButton.backgroundColor = UIColor.clear
+        scanOtherRoomsButton.setTitleColor(UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0), for: .normal)
+        scanOtherRoomsButton.layer.cornerRadius = 12
+        scanOtherRoomsButton.layer.borderWidth = 2.0
+        scanOtherRoomsButton.layer.borderColor = UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0).cgColor
+        scanOtherRoomsButton.addTarget(self, action: #selector(scanOtherRooms), for: .touchUpInside)
 
-    // Configure Scan Other Rooms Button - Outlined style
-    scanOtherRoomsButton.setTitle("Scan Other Rooms", for: .normal)
-    scanOtherRoomsButton.isEnabled = false
-    scanOtherRoomsButton.isHidden = true
-    scanOtherRoomsButton.alpha = 0.0
-    scanOtherRoomsButton.backgroundColor = UIColor.clear
-    scanOtherRoomsButton.setTitleColor(UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0), for: .normal)
-    scanOtherRoomsButton.layer.cornerRadius = 12
-    scanOtherRoomsButton.layer.borderWidth = 2.0
-    scanOtherRoomsButton.layer.borderColor = UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0).cgColor
-    scanOtherRoomsButton.addTarget(self, action: #selector(scanOtherRooms), for: .touchUpInside)
+        // Configure Cancel and Done Buttons
+        cancelButton.setTitle("Cancel", for: .normal)
+        cancelButton.addTarget(self, action: #selector(cancelScanning), for: .touchUpInside)
 
-    // Configure Cancel and Done Buttons
-    cancelButton.setTitle("Cancel", for: .normal)
-    cancelButton.addTarget(self, action: #selector(cancelScanning), for: .touchUpInside)
+        doneButton.setTitle("Done", for: .normal)
+        doneButton.addTarget(self, action: #selector(doneScanning), for: .touchUpInside)
 
-    doneButton.setTitle("Done", for: .normal)
-    doneButton.addTarget(self, action: #selector(doneScanning), for: .touchUpInside)
+        // Add subviews
+        [finishButton, scanOtherRoomsButton, cancelButton, doneButton, activityIndicator].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview($0)
+        }
 
-    // Add subviews
-    [finishButton, scanOtherRoomsButton, cancelButton, doneButton, activityIndicator].forEach {
-        $0.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview($0)
+        setupConstraints()
     }
 
-    // Layout constraints
-    NSLayoutConstraint.activate([
-        cancelButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-        cancelButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+    private func setupConstraints() {
+        NSLayoutConstraint.activate([
+            cancelButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            cancelButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
 
-        doneButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-        doneButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            doneButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            doneButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
 
-        // Finish Button - Left side of the row
-        finishButton.trailingAnchor.constraint(equalTo: view.centerXAnchor, constant: -10),
-        finishButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
-        finishButton.widthAnchor.constraint(equalToConstant: 120),
-        finishButton.heightAnchor.constraint(equalToConstant: 44),
+            activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
 
-        // Scan Other Rooms Button - Right side of the row
-        scanOtherRoomsButton.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 10),
-        scanOtherRoomsButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
-        scanOtherRoomsButton.widthAnchor.constraint(equalToConstant: 160),
-        scanOtherRoomsButton.heightAnchor.constraint(equalToConstant: 44),
+        // Set up button constraints based on iOS version and multi-room mode
+        if #available(iOS 17.0, *), enableMultiRoomMode {
+            // iOS 17.0+ with multi-room: Show both buttons side by side
+            NSLayoutConstraint.activate([
+                finishButton.trailingAnchor.constraint(equalTo: view.centerXAnchor, constant: -10),
+                finishButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
+                finishButton.widthAnchor.constraint(equalToConstant: 120),
+                finishButton.heightAnchor.constraint(equalToConstant: 44),
 
-        activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-        activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-    ])
-}
+                scanOtherRoomsButton.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 10),
+                scanOtherRoomsButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
+                scanOtherRoomsButton.widthAnchor.constraint(equalToConstant: 160),
+                scanOtherRoomsButton.heightAnchor.constraint(equalToConstant: 44),
+            ])
+        } else {
+            // iOS 16.0 or single room mode: Only show finish button centered
+            NSLayoutConstraint.activate([
+                finishButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                finishButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
+                finishButton.widthAnchor.constraint(equalToConstant: 120),
+                finishButton.heightAnchor.constraint(equalToConstant: 44),
+            ])
+        }
+    }
 
     private func setupRoomCaptureView() {
         roomCaptureView = RoomCaptureView(frame: .zero)
@@ -130,14 +144,17 @@ private func setupUI() {
 
     private func startSession() {
         isScanning = true
-       roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
+        roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
         
         // Hide Finish button
         finishButton.isHidden = true
         finishButton.alpha = 0.0
 
-        scanOtherRoomsButton.isHidden = true
-        scanOtherRoomsButton.alpha = 0.0
+        // Hide scan other rooms button (only relevant for iOS 17.0+ with multi-room)
+        if #available(iOS 17.0, *), enableMultiRoomMode {
+            scanOtherRoomsButton.isHidden = true
+            scanOtherRoomsButton.alpha = 0.0
+        }
 
         // Show Done button again (in case it was hidden before)
         doneButton.isHidden = false
@@ -146,13 +163,13 @@ private func setupUI() {
 
     private func stopSession() {
         isScanning = false
-                // Check iOS version for stop method
+        
+        // Use appropriate stop method based on iOS version
         if #available(iOS 17.0, *) {
-        roomCaptureView.captureSession.stop(pauseARSession: !enableMultiRoomMode)
+            roomCaptureView.captureSession.stop(pauseARSession: !enableMultiRoomMode)
         } else {
             roomCaptureView.captureSession.stop()
         }
-
 
         // Show Finish button
         finishButton.isHidden = false
@@ -160,10 +177,11 @@ private func setupUI() {
             self.finishButton.alpha = 1.0
         }
 
-        if enableMultiRoomMode {
-        scanOtherRoomsButton.isHidden = false
-        UIView.animate(withDuration: 0.3) {
-            self.scanOtherRoomsButton.alpha = 1.0
+        // Show scan other rooms button only for iOS 17.0+ with multi-room enabled
+        if #available(iOS 17.0, *), enableMultiRoomMode {
+            scanOtherRoomsButton.isHidden = false
+            UIView.animate(withDuration: 0.3) {
+                self.scanOtherRoomsButton.alpha = 1.0
             }
         }
 
@@ -179,19 +197,22 @@ private func setupUI() {
         return true
     }
 
-
-
     private func exportToJSON() {
         guard let finalResults = finalResults else { return }
         
-        print("Captured exportToJSON rooms count: \(capturedRoomArray.count)") // <-- Print array length
+        print("Captured exportToJSON rooms count: \(capturedRoomArray.count)")
         
         do {
             let jsonEncoder = JSONEncoder()
             jsonEncoder.outputFormatting = [.prettyPrinted]
             
-            // Export the entire capturedRoomArray instead of just finalResults
-            let jsonData = try jsonEncoder.encode(capturedRoomArray)
+            // For iOS 16.0, export single room; for iOS 17.0+ with multi-room, export array
+            let dataToExport: Data
+            if #available(iOS 17.0, *), enableMultiRoomMode {
+                dataToExport = try jsonEncoder.encode(capturedRoomArray)
+            } else {
+                dataToExport = try jsonEncoder.encode(finalResults)
+            }
             
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let roomScansFolder = documentsPath.appendingPathComponent("RoomScans")
@@ -204,7 +225,7 @@ private func setupUI() {
             let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).json"
             let fileURL = roomScansFolder.appendingPathComponent(fileName)
             
-            try jsonData.write(to: fileURL)
+            try dataToExport.write(to: fileURL)
             self.jsonFilePath = fileURL.path
             
             print("Successfully exported JSON file to: \(fileURL.path)")
@@ -214,49 +235,82 @@ private func setupUI() {
         }
     }
 
-
     private func exportToUSDZ() {
-    guard let finalResults = finalResults else { return }
+        guard let finalResults = finalResults else { return }
 
-      print("Captured exportToUSDZ rooms count: \(capturedRoomArray.count)") // <-- Print array length
+        print("Captured exportToUSDZ rooms count: \(capturedRoomArray.count)")
 
-    if #available(iOS 17.0, *) {
-        Task {
-            do {
-                let structureBuilder = StructureBuilder(options: [.beautifyObjects])
-                let capturedStructure = try await structureBuilder.capturedStructure(from: capturedRoomArray)
+        if #available(iOS 17.0, *) {
+            Task {
+                do {
+                    let structureBuilder = StructureBuilder(options: [.beautifyObjects])
+                    let capturedStructure: CapturedStructure
+                    
+                    // Use merge API for multi-room in iOS 17.0+, single room for others
+                    if enableMultiRoomMode {
+                        capturedStructure = try await structureBuilder.capturedStructure(from: capturedRoomArray)
+                    } else {
+                        capturedStructure = try await structureBuilder.capturedStructure(from: finalResults)
+                    }
 
-                let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                let roomScansFolder = documentsPath.appendingPathComponent("RoomScans")
+                    let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                    let roomScansFolder = documentsPath.appendingPathComponent("RoomScans")
 
-                if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
-                    try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
+                    if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
+                        try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
+                    }
+
+                    let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
+                    let fileURL = roomScansFolder.appendingPathComponent(fileName)
+
+                    try capturedStructure.export(to: fileURL)
+                    self.usdzFilePath = fileURL.path
+                } catch {
+                    print("Failed to export USDZ file: \(error)")
                 }
-
-                let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
-                let fileURL = roomScansFolder.appendingPathComponent(fileName)
-
-                try capturedStructure.export(to: fileURL)
-                self.usdzFilePath = fileURL.path
-            } catch {
-                print("Failed to export USDZ file: \(error)")
             }
-        }
+        } else if #available(iOS 16.0, *) {
+            // For iOS 16.0, use the single room export method
+            Task {
+                do {
+                    let structureBuilder = StructureBuilder(options: [.beautifyObjects])
+                    let capturedStructure = try await structureBuilder.capturedStructure(from: finalResults)
+
+                    let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                    let roomScansFolder = documentsPath.appendingPathComponent("RoomScans")
+
+                    if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
+                        try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
+                    }
+
+                    let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
+                    let fileURL = roomScansFolder.appendingPathComponent(fileName)
+
+                    try capturedStructure.export(to: fileURL)
+                    self.usdzFilePath = fileURL.path
+                } catch {
+                    print("Failed to export USDZ file: \(error)")
+                }
+            }
         } else {
-            print("USDZ export is only supported on iOS 17.0 or newer")
+            print("USDZ export is only supported on iOS 16.0 or newer")
         }
     }
-
 
     public func captureView(didPresent processedResult: CapturedRoom, error: Error?) {
         finalResults = processedResult
         capturedRoomArray.append(processedResult)
-         print("Captured rooms count: \(capturedRoomArray.count)") // <-- Print array length
+        print("Captured rooms count: \(capturedRoomArray.count)")
         finishButton.isEnabled = true
+        
+        // Only enable scan other rooms button on iOS 17.0+ with multi-room mode
+        if #available(iOS 17.0, *), enableMultiRoomMode {
             scanOtherRoomsButton.isEnabled = true
+        }
+        
         activityIndicator.stopAnimating()
         
-        // Export USDZ file
+        // Export files
         exportToUSDZ()
         exportToJSON()
     }
@@ -268,7 +322,12 @@ private func setupUI() {
             cancelScanning()
         }
         finishButton.isEnabled = false
-        scanOtherRoomsButton.isEnabled = false
+        
+        // Only disable scan other rooms button on iOS 17.0+ with multi-room mode
+        if #available(iOS 17.0, *), enableMultiRoomMode {
+            scanOtherRoomsButton.isEnabled = false
+        }
+        
         activityIndicator.startAnimating()
     }
 
@@ -284,7 +343,15 @@ private func setupUI() {
 
         do {
             let jsonEncoder = JSONEncoder()
-            let jsonData = try jsonEncoder.encode(finalResults)
+            let jsonData: Data
+            
+            // Return appropriate data based on iOS version and multi-room mode
+            if #available(iOS 17.0, *), enableMultiRoomMode, capturedRoomArray.count > 1 {
+                jsonData = try jsonEncoder.encode(capturedRoomArray)
+            } else {
+                jsonData = try jsonEncoder.encode(finalResults)
+            }
+            
             if let jsonString = String(data: jsonData, encoding: .utf8) {
                 // Send data to Flutter via MethodChannel
                 if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
@@ -293,15 +360,19 @@ private func setupUI() {
                 }
             }
         } catch {
-            print("Failed to encode finalResults: \\(error)")
+            print("Failed to encode finalResults: \(error)")
         }
 
         self.dismiss(animated: true)
     }
 
-
-     // ADDED: New method to handle scanning additional rooms in multi-room mode
+    // ADDED: New method to handle scanning additional rooms in multi-room mode (iOS 17.0+ only)
     @objc private func scanOtherRooms() {
+        // This method should only be called on iOS 17.0+ with multi-room mode
+        guard #available(iOS 17.0, *), enableMultiRoomMode else {
+            return
+        }
+        
         // Reset the current room scanning state
         finalResults = nil
         
