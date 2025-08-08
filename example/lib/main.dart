@@ -55,7 +55,7 @@ class _MyAppState extends State<MyApp> {
     }
 
     try {
-      await _flutterRoomplanPlugin.startScan();
+      await _flutterRoomplanPlugin.startScan(enableMultiRoom: true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
