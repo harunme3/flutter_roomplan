@@ -342,22 +342,10 @@ import ARKit
         }
 
         do {
-            let jsonEncoder = JSONEncoder()
-            let jsonData: Data
-            
-            // Return appropriate data based on iOS version and multi-room mode
-            if #available(iOS 17.0, *), enableMultiRoomMode, capturedRoomArray.count > 1 {
-                jsonData = try jsonEncoder.encode(capturedRoomArray)
-            } else {
-                jsonData = try jsonEncoder.encode(finalResults)
-            }
-            
-            if let jsonString = String(data: jsonData, encoding: .utf8) {
-                // Send data to Flutter via MethodChannel
-                if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
-                    let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
-                    channel.invokeMethod("onRoomCaptureFinished", arguments: jsonString)
-                }
+           // Send notification to Flutter via MethodChannel
+            if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
+                let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
+                channel.invokeMethod("onRoomCaptureFinished", arguments: nil)
             }
         } catch {
             print("Failed to encode finalResults: \(error)")

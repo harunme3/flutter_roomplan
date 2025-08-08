@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_roomplan/payloads.dart';
 import 'flutter_roomplan_platform_interface.dart';
 
 /// An implementation of [FlutterRoomplanPlatform] that uses method channels.
@@ -9,15 +8,14 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   @visibleForTesting
   final methodChannel = const MethodChannel('rkg/flutter_roomplan');
 
-  CaptureFinishedHandler? _captureFinishedHandler;
+  VoidCallback? _captureFinishedHandler;
   bool _isHandlerSetup = false;
 
   void _setupMethodCallHandler() {
     if (!_isHandlerSetup) {
       methodChannel.setMethodCallHandler((call) async {
         if (call.method == 'onRoomCaptureFinished') {
-          String jsonResult = call.arguments;
-          _captureFinishedHandler?.call(jsonResult);
+          _captureFinishedHandler?.call();
         }
       });
       _isHandlerSetup = true;
@@ -32,7 +30,7 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   }
 
   @override
-  void onRoomCaptureFinished(CaptureFinishedHandler handler) {
+  void onRoomCaptureFinished(VoidCallback handler) {
     _captureFinishedHandler = handler;
     _setupMethodCallHandler();
   }

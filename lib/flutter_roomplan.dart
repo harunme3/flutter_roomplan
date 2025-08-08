@@ -1,4 +1,4 @@
-import 'package:flutter_roomplan/payloads.dart';
+import 'package:flutter/foundation.dart';
 import 'flutter_roomplan_platform_interface.dart';
 
 class FlutterRoomplan {
@@ -6,7 +6,7 @@ class FlutterRoomplan {
     return FlutterRoomplanPlatform.instance.startScan(enableMultiRoom: enableMultiRoom);
   }
 
-  void onRoomCaptureFinished(CaptureFinishedHandler handler) {
+  void onRoomCaptureFinished(VoidCallback handler) {
     FlutterRoomplanPlatform.instance.onRoomCaptureFinished(handler);
   }
 
