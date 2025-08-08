@@ -16,6 +16,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final _flutterRoomplanPlugin = FlutterRoomplan();
   bool _isSupported = false;
+  bool _isMultiRoomSupported = false;
   String? _lastUsdzFilePath;
   String? _lastJsonFilePath;
 
@@ -38,8 +39,10 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _checkSupport() async {
     final isSupported = await _flutterRoomplanPlugin.isSupported();
+    final isMultiRoomSupported = await _flutterRoomplanPlugin.isMultiRoomSupported();
     setState(() {
       _isSupported = isSupported;
+      _isMultiRoomSupported = isMultiRoomSupported;
     });
   }
 
@@ -56,7 +59,7 @@ class _MyAppState extends State<MyApp> {
     }
 
     try {
-      await _flutterRoomplanPlugin.startScan(enableMultiRoom: true);
+      await _flutterRoomplanPlugin.startScan(enableMultiRoom: _isMultiRoomSupported);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -84,9 +87,35 @@ class _MyAppState extends State<MyApp> {
                     textAlign: TextAlign.center,
                   ),
                 ),
+              if (_isSupported)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        'RoomPlan: Supported ✅',
+                        style: TextStyle(color: Colors.green),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _isMultiRoomSupported
+                            ? 'Multi-Room: Supported ✅ (iOS 17.0+)'
+                            : 'Multi-Room: Not Supported ❌ (Requires iOS 17.0+)',
+                        style: TextStyle(
+                          color: _isMultiRoomSupported ? Colors.green : Colors.orange,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
               ElevatedButton(
                 onPressed: _isSupported ? _startRoomScan : null,
-                child: const Text('Start Room Scan'),
+                child: Text(
+                  _isMultiRoomSupported
+                      ? 'Start Multi-Room Scan'
+                      : 'Start Single Room Scan',
+                ),
               ),
               if (_lastUsdzFilePath != null)
                 Padding(

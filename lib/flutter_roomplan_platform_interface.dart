@@ -37,6 +37,10 @@ abstract class FlutterRoomplanPlatform extends PlatformInterface {
     throw UnimplementedError('isSupported() has not been implemented.');
   }
 
+  Future<bool> isMultiRoomSupported() {
+    throw UnimplementedError('isMultiRoomSupported() has not been implemented.');
+  }
+
   Future<String?> getUsdzFilePath() {
     throw UnimplementedError('getUsdzFilePath() has not been implemented.');
   }

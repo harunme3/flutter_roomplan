@@ -42,6 +42,12 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   }
 
   @override
+  Future<bool> isMultiRoomSupported() async {
+    final bool? result = await methodChannel.invokeMethod<bool>('isMultiRoomSupported');
+    return result ?? false;
+  }
+
+  @override
   Future<String?> getUsdzFilePath() async {
     final String? result = await methodChannel.invokeMethod<String>(
       'getUsdzFilePath',
