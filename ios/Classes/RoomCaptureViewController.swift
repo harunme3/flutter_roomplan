@@ -38,67 +38,70 @@ import ARKit
         return false
     }
 
-    private func setupUI() {
-        view.backgroundColor = .white
+ // Replace the existing button configuration in setupUI() method
 
-        // Configure Finish Button
-        finishButton.setTitle("Finish", for: .normal)
-        finishButton.isEnabled = false
-        finishButton.isHidden = true
-        finishButton.alpha = 0.0
-        finishButton.backgroundColor = UIColor.systemBlue
-        finishButton.setTitleColor(.white, for: .normal)
-        finishButton.layer.cornerRadius = 12
-        finishButton.addTarget(self, action: #selector(finishAndReturnResult), for: .touchUpInside)
+private func setupUI() {
+    view.backgroundColor = .white
 
-        // ADDED: Configure Scan Other Rooms Button for multi-room functionality
-        scanOtherRoomsButton.setTitle("Scan Other Rooms", for: .normal)
-        scanOtherRoomsButton.isEnabled = false
-        scanOtherRoomsButton.isHidden = true
-        scanOtherRoomsButton.alpha = 0.0
-        scanOtherRoomsButton.backgroundColor = UIColor.systemGreen
-        scanOtherRoomsButton.setTitleColor(.white, for: .normal)
-        scanOtherRoomsButton.layer.cornerRadius = 12
-        scanOtherRoomsButton.addTarget(self, action: #selector(scanOtherRooms), for: .touchUpInside)
+    // Configure Finish Button - Filled style
+    finishButton.setTitle("Finish", for: .normal)
+    finishButton.isEnabled = false
+    finishButton.isHidden = true
+    finishButton.alpha = 0.0
+    finishButton.backgroundColor = UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0)
+    finishButton.setTitleColor(.white, for: .normal)
+    finishButton.layer.cornerRadius = 12
+    finishButton.addTarget(self, action: #selector(finishAndReturnResult), for: .touchUpInside)
 
+    // Configure Scan Other Rooms Button - Outlined style
+    scanOtherRoomsButton.setTitle("Scan Other Rooms", for: .normal)
+    scanOtherRoomsButton.isEnabled = false
+    scanOtherRoomsButton.isHidden = true
+    scanOtherRoomsButton.alpha = 0.0
+    scanOtherRoomsButton.backgroundColor = UIColor.clear
+    scanOtherRoomsButton.setTitleColor(UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0), for: .normal)
+    scanOtherRoomsButton.layer.cornerRadius = 12
+    scanOtherRoomsButton.layer.borderWidth = 2.0
+    scanOtherRoomsButton.layer.borderColor = UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0).cgColor
+    scanOtherRoomsButton.addTarget(self, action: #selector(scanOtherRooms), for: .touchUpInside)
 
-        // Configure Cancel and Done Buttons
-        cancelButton.setTitle("Cancel", for: .normal)
-        cancelButton.addTarget(self, action: #selector(cancelScanning), for: .touchUpInside)
+    // Configure Cancel and Done Buttons
+    cancelButton.setTitle("Cancel", for: .normal)
+    cancelButton.addTarget(self, action: #selector(cancelScanning), for: .touchUpInside)
 
-        doneButton.setTitle("Done", for: .normal)
-        doneButton.addTarget(self, action: #selector(doneScanning), for: .touchUpInside)
+    doneButton.setTitle("Done", for: .normal)
+    doneButton.addTarget(self, action: #selector(doneScanning), for: .touchUpInside)
 
-        // Add subviews
-        [finishButton,scanOtherRoomsButton, cancelButton, doneButton, activityIndicator].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview($0)
-        }
-
-        // Layout constraints
-        NSLayoutConstraint.activate([
-            cancelButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            cancelButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
-
-            doneButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            doneButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
-
-            finishButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            finishButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30),
-            finishButton.widthAnchor.constraint(equalToConstant: 120),
-            finishButton.heightAnchor.constraint(equalToConstant: 44),
-
-            // ADDED: Layout constraints for scan other rooms button
-            scanOtherRoomsButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            scanOtherRoomsButton.topAnchor.constraint(equalTo: finishButton.bottomAnchor, constant: 15),
-            scanOtherRoomsButton.widthAnchor.constraint(equalToConstant: 160),
-            scanOtherRoomsButton.heightAnchor.constraint(equalToConstant: 44),
-
-
-            activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
+    // Add subviews
+    [finishButton, scanOtherRoomsButton, cancelButton, doneButton, activityIndicator].forEach {
+        $0.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview($0)
     }
+
+    // Layout constraints
+    NSLayoutConstraint.activate([
+        cancelButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+        cancelButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+
+        doneButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+        doneButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+
+        // Finish Button - Left side of the row
+        finishButton.trailingAnchor.constraint(equalTo: view.centerXAnchor, constant: -10),
+        finishButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
+        finishButton.widthAnchor.constraint(equalToConstant: 120),
+        finishButton.heightAnchor.constraint(equalToConstant: 44),
+
+        // Scan Other Rooms Button - Right side of the row
+        scanOtherRoomsButton.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 10),
+        scanOtherRoomsButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
+        scanOtherRoomsButton.widthAnchor.constraint(equalToConstant: 160),
+        scanOtherRoomsButton.heightAnchor.constraint(equalToConstant: 44),
+
+        activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+        activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+    ])
+}
 
     private func setupRoomCaptureView() {
         roomCaptureView = RoomCaptureView(frame: .zero)
@@ -177,6 +180,41 @@ import ARKit
     }
 
 
+
+    private func exportToJSON() {
+        guard let finalResults = finalResults else { return }
+        
+        print("Captured exportToJSON rooms count: \(capturedRoomArray.count)") // <-- Print array length
+        
+        do {
+            let jsonEncoder = JSONEncoder()
+            jsonEncoder.outputFormatting = [.prettyPrinted]
+            
+            // Export the entire capturedRoomArray instead of just finalResults
+            let jsonData = try jsonEncoder.encode(capturedRoomArray)
+            
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let roomScansFolder = documentsPath.appendingPathComponent("RoomScans")
+            
+            // Create the RoomScans directory if it doesn't exist
+            if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
+                try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
+            }
+            
+            let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).json"
+            let fileURL = roomScansFolder.appendingPathComponent(fileName)
+            
+            try jsonData.write(to: fileURL)
+            self.jsonFilePath = fileURL.path
+            
+            print("Successfully exported JSON file to: \(fileURL.path)")
+            
+        } catch {
+            print("Failed to export JSON file: \(error)")
+        }
+    }
+
+
     private func exportToUSDZ() {
     guard let finalResults = finalResults else { return }
 
@@ -220,6 +258,7 @@ import ARKit
         
         // Export USDZ file
         exportToUSDZ()
+        exportToJSON()
     }
 
     @objc private func doneScanning() {
