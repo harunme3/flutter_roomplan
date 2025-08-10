@@ -26,6 +26,7 @@ import ARKit
 
     public override func viewDidLoad() {
         super.viewDidLoad()
+        resetScanningSession()
         setupUI()
         setupRoomCaptureView()
         activityIndicator.stopAnimating()
@@ -308,9 +309,6 @@ import ARKit
         
         activityIndicator.stopAnimating()
         
-        // Export files
-        exportToUSDZ()
-        exportToJSON()
     }
 
     @objc private func doneScanning() {
@@ -340,6 +338,10 @@ import ARKit
         }
 
         do {
+            // Export files
+            exportToUSDZ()
+            exportToJSON()
+            
            // Send notification to Flutter via MethodChannel
             if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
                 let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
@@ -411,5 +413,12 @@ import ARKit
         } catch {
             print("Failed to cleanup old scan files: \(error)")
         }
+    }
+
+    private func resetScanningSession() {
+        capturedRoomArray.removeAll()
+        currentCapturedRoom = nil
+        usdzFilePath = nil
+        jsonFilePath = nil
     }
 }
