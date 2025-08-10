@@ -10,6 +10,7 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
 
   VoidCallback? _captureFinishedHandler;
   VoidCallback? _scanOtherRoomsHandler;
+  VoidCallback? _scanCancelHandler;
   bool _isHandlerSetup = false;
 
   void _setupMethodCallHandler() {
@@ -20,6 +21,9 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
         }
         if (call.method == 'onScanOtherRoomsRequested') {
           _scanOtherRoomsHandler?.call();
+        }
+        if (call.method == 'onScanCancelRequested') {
+          _scanCancelHandler?.call();
         }
       });
       _isHandlerSetup = true;
@@ -42,6 +46,12 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   @override
   void onScanOtherRoomsRequested(VoidCallback handler) {
     _scanOtherRoomsHandler = handler;
+    _setupMethodCallHandler();
+  }
+
+  @override
+  void onScanCancelRequested(VoidCallback handler) {
+    _scanCancelHandler = handler;
     _setupMethodCallHandler();
   }
 

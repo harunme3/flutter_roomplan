@@ -39,6 +39,12 @@ abstract class FlutterRoomplanPlatform extends PlatformInterface {
     );
   }
 
+  void onScanCancelRequested(VoidCallback handler) {
+    throw UnimplementedError(
+      'onScanCancelRequested() has not been implemented.',
+    );
+  }
+
   Future<bool> isSupported() {
     throw UnimplementedError('isSupported() has not been implemented.');
   }

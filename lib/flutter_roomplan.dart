@@ -16,6 +16,10 @@ class FlutterRoomplan {
     FlutterRoomplanPlatform.instance.onScanOtherRoomsRequested(handler);
   }
 
+  void onScanCancelRequested(VoidCallback handler) {
+    FlutterRoomplanPlatform.instance.onScanCancelRequested(handler);
+  }
+
   Future<bool> isSupported() {
     return FlutterRoomplanPlatform.instance.isSupported();
   }

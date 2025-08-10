@@ -29,6 +29,12 @@ class _MyAppState extends State<MyApp> {
 
     flutterRoomplan.onScanOtherRoomsRequested(() async {
       debugPrint('Scan other rooms requested');
+      //add new entries in list for room when scan other rooms is requested
+    });
+
+    flutterRoomplan.onScanCancelRequested(() async {
+      debugPrint('Scan cancel requested');
+      //cancel the scan
     });
 
     flutterRoomplan.onRoomCaptureFinished(() async {

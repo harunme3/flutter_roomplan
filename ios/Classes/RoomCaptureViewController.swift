@@ -263,6 +263,12 @@ import ARKit
 
     @objc private func cancelScanning() {
         self.view.isHidden = true
+
+        // Notify Flutter that user wants to scan another room
+        if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
+            let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
+            channel.invokeMethod("onScanCancelRequested", arguments: nil)
+        }
     }
 
 
