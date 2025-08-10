@@ -143,6 +143,9 @@ import ARKit
     }
 
     private func startSession() {
+        // Clean up old files first
+        cleanupOldScanFiles(keepLastCount: 10)
+
         isScanning = true
         roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
         
@@ -214,9 +217,9 @@ import ARKit
             }
             
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let roomScansFolder = documentsPath.appendingPathComponent("RoomScans")
+            let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
             
-            // Create the RoomScans directory if it doesn't exist
+            // Create the RoomDataScans directory if it doesn't exist
             if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
                 try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
             }
@@ -252,7 +255,7 @@ import ARKit
                     }
 
                     let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                    let roomScansFolder = documentsPath.appendingPathComponent("RoomScans")
+                    let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
 
                     if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
                         try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
@@ -273,7 +276,7 @@ import ARKit
                 do {
                
                     let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                    let roomScansFolder = documentsPath.appendingPathComponent("RoomScans")
+                    let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
 
                     if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
                         try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
@@ -370,6 +373,43 @@ import ARKit
             self.finishButton.isHidden = true
             self.scanOtherRoomsButton.isHidden = true
             self.startSession()
+        }
+    }
+
+      private func cleanupOldScanFiles(keepLastCount: Int = 10) {
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
+        
+        do {
+            if FileManager.default.fileExists(atPath: roomScansFolder.path) {
+                let files = try FileManager.default.contentsOfDirectory(at: roomScansFolder, includingPropertiesForKeys: [.creationDateKey])
+                
+                // Filter only .usdz and .json files
+                let scanFiles = files.filter { file in
+                    let ext = file.pathExtension.lowercased()
+                    return ext == "usdz" || ext == "json"
+                }
+                
+                // Sort by creation date (newest first)
+                let sortedFiles = scanFiles.sorted { file1, file2 in
+                    guard let date1 = try? file1.resourceValues(forKeys: [.creationDateKey]).creationDate,
+                          let date2 = try? file2.resourceValues(forKeys: [.creationDateKey]).creationDate else {
+                        return false
+                    }
+                    return date1 > date2
+                }
+                
+                // Delete files beyond the keep count
+                if sortedFiles.count > keepLastCount {
+                    let filesToDelete = Array(sortedFiles.dropFirst(keepLastCount))
+                    for file in filesToDelete {
+                        try FileManager.default.removeItem(at: file)
+                    }
+                    print("Cleaned up \(filesToDelete.count) old scan files, kept \(min(sortedFiles.count, keepLastCount)) recent files")
+                }
+            }
+        } catch {
+            print("Failed to cleanup old scan files: \(error)")
         }
     }
 }
