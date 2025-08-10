@@ -14,59 +14,37 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final _flutterRoomplanPlugin = FlutterRoomplan();
-  bool _isSupported = false;
-  bool _isMultiRoomSupported = false;
-  String? _lastUsdzFilePath;
-  String? _lastJsonFilePath;
+  final FlutterRoomplan flutterRoomplan = FlutterRoomplan();
+  bool isSupported = false;
+  bool isMultiRoomSupported = false;
+  String? usdzFilePath;
+  String? jsonFilePath;
 
   @override
   void initState() {
     super.initState();
-    _checkSupport();
-    _flutterRoomplanPlugin.onRoomCaptureFinished(() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkSupport();
+    });
+    flutterRoomplan.onRoomCaptureFinished(() async {
       debugPrint('Room scan completed');
-
-      /// Get the USDZ and JSON file paths after scan is complete
-      final usdzPath = await _flutterRoomplanPlugin.getUsdzFilePath();
-      final jsonPath = await _flutterRoomplanPlugin.getJsonFilePath();
+      // Get the USDZ and JSON file paths after scan is complete
+      final usdzPath = await flutterRoomplan.getUsdzFilePath();
+      final jsonPath = await flutterRoomplan.getJsonFilePath();
       setState(() {
-        _lastUsdzFilePath = usdzPath;
-        _lastJsonFilePath = jsonPath;
+        usdzFilePath = usdzPath;
+        jsonFilePath = jsonPath;
       });
     });
   }
 
   Future<void> _checkSupport() async {
-    final isSupported = await _flutterRoomplanPlugin.isSupported();
-    final isMultiRoomSupported = await _flutterRoomplanPlugin.isMultiRoomSupported();
+    final isSupported = await flutterRoomplan.isSupported();
+    final isMultiRoomSupported = await flutterRoomplan.isMultiRoomSupported();
     setState(() {
-      _isSupported = isSupported;
-      _isMultiRoomSupported = isMultiRoomSupported;
+      this.isSupported = isSupported;
+      this.isMultiRoomSupported = isMultiRoomSupported;
     });
-  }
-
-  Future<void> _startRoomScan() async {
-    if (!_isSupported) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('RoomPlan is not supported on this device'),
-          ),
-        );
-      }
-      return;
-    }
-
-    try {
-      await _flutterRoomplanPlugin.startScan(enableMultiRoom: _isMultiRoomSupported);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    }
   }
 
   @override
@@ -77,59 +55,61 @@ class _MyAppState extends State<MyApp> {
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (!_isSupported)
-                const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text(
-                    'RoomPlan is not supported on this device',
-                    style: TextStyle(color: Colors.red),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              if (_isSupported)
+              if (isSupported)
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
                       Text(
-                        'RoomPlan: Supported ✅',
+                        'RoomPlan: Supported ✅ (iOS 16.0+)',
                         style: TextStyle(color: Colors.green),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        _isMultiRoomSupported
-                            ? 'Multi-Room: Supported ✅ (iOS 17.0+)'
-                            : 'Multi-Room: Not Supported ❌ (Requires iOS 17.0+)',
-                        style: TextStyle(
-                          color: _isMultiRoomSupported ? Colors.green : Colors.orange,
-                        ),
-                        textAlign: TextAlign.center,
+                      ElevatedButton(
+                        onPressed: () {
+                          flutterRoomplan.startScan();
+                        },
+                        child: Text('Start Room Scan'),
                       ),
                     ],
                   ),
                 ),
-              ElevatedButton(
-                onPressed: _isSupported ? _startRoomScan : null,
-                child: Text(
-                  _isMultiRoomSupported
-                      ? 'Start Multi-Room Scan'
-                      : 'Start Single Room Scan',
+              if (isMultiRoomSupported)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Multi-Room: Supported ✅ (iOS 17.0+)',
+                        style: TextStyle(color: Colors.green),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          flutterRoomplan.startScan(enableMultiRoom: true);
+                        },
+                        child: Text('Start Multi-Room Scan'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              if (_lastUsdzFilePath != null)
+              if (usdzFilePath != null)
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
-                    'Last scan USDZ file:\n$_lastUsdzFilePath',
+                    'Scanned USDZ file:\n$usdzFilePath',
                     textAlign: TextAlign.center,
                   ),
                 ),
-              if (_lastJsonFilePath != null)
+              if (jsonFilePath != null)
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
-                    'Last scan JSON file:\n$_lastJsonFilePath',
+                    'Scanned JSON file:\n$jsonFilePath',
                     textAlign: TextAlign.center,
                   ),
                 ),
