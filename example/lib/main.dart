@@ -26,6 +26,11 @@ class _MyAppState extends State<MyApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkSupport();
     });
+
+    flutterRoomplan.onScanOtherRoomsRequested(() async {
+      debugPrint('Scan other rooms requested');
+    });
+
     flutterRoomplan.onRoomCaptureFinished(() async {
       debugPrint('Room scan completed');
       // Get the USDZ and JSON file paths after scan is complete

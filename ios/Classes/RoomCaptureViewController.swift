@@ -26,7 +26,6 @@ import ARKit
 
     public override func viewDidLoad() {
         super.viewDidLoad()
-        resetScanningSession()
         setupUI()
         setupRoomCaptureView()
         activityIndicator.stopAnimating()
@@ -217,7 +216,14 @@ import ARKit
         } completion: { _ in
             self.finishButton.isHidden = true
             self.scanOtherRoomsButton.isHidden = true
-            self.startSession()
+            self.view.isHidden = true
+
+            // Notify Flutter that user wants to scan another room
+            if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
+                let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
+                channel.invokeMethod("onScanOtherRoomsRequested", arguments: nil)
+            }
+            
         }
     }
 
@@ -256,7 +262,7 @@ import ARKit
     }
 
     @objc private func cancelScanning() {
-        self.dismiss(animated: true)
+        self.view.isHidden = true
     }
 
 
@@ -463,10 +469,4 @@ import ARKit
         }
     }
 
-    private func resetScanningSession() {
-        capturedRoomArray.removeAll()
-        currentCapturedRoom = nil
-        usdzFilePath = nil
-        jsonFilePath = nil
-    }
 }

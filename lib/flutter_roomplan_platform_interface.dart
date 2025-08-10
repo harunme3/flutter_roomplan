@@ -33,12 +33,20 @@ abstract class FlutterRoomplanPlatform extends PlatformInterface {
     );
   }
 
+  void onScanOtherRoomsRequested(VoidCallback handler) {
+    throw UnimplementedError(
+      'onScanOtherRoomsRequested() has not been implemented.',
+    );
+  }
+
   Future<bool> isSupported() {
     throw UnimplementedError('isSupported() has not been implemented.');
   }
 
   Future<bool> isMultiRoomSupported() {
-    throw UnimplementedError('isMultiRoomSupported() has not been implemented.');
+    throw UnimplementedError(
+      'isMultiRoomSupported() has not been implemented.',
+    );
   }
 
   Future<String?> getUsdzFilePath() {

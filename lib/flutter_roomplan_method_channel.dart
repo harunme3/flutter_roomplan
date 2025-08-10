@@ -9,6 +9,7 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   final methodChannel = const MethodChannel('rkg/flutter_roomplan');
 
   VoidCallback? _captureFinishedHandler;
+  VoidCallback? _scanOtherRoomsHandler;
   bool _isHandlerSetup = false;
 
   void _setupMethodCallHandler() {
@@ -16,6 +17,9 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
       methodChannel.setMethodCallHandler((call) async {
         if (call.method == 'onRoomCaptureFinished') {
           _captureFinishedHandler?.call();
+        }
+        if (call.method == 'onScanOtherRoomsRequested') {
+          _scanOtherRoomsHandler?.call();
         }
       });
       _isHandlerSetup = true;
@@ -36,6 +40,12 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   }
 
   @override
+  void onScanOtherRoomsRequested(VoidCallback handler) {
+    _scanOtherRoomsHandler = handler;
+    _setupMethodCallHandler();
+  }
+
+  @override
   Future<bool> isSupported() async {
     final bool? result = await methodChannel.invokeMethod<bool>('isSupported');
     return result ?? false;
@@ -43,7 +53,9 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
 
   @override
   Future<bool> isMultiRoomSupported() async {
-    final bool? result = await methodChannel.invokeMethod<bool>('isMultiRoomSupported');
+    final bool? result = await methodChannel.invokeMethod<bool>(
+      'isMultiRoomSupported',
+    );
     return result ?? false;
   }
 
