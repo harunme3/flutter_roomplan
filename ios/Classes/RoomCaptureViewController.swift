@@ -5,11 +5,11 @@ import ARKit
 
 @objc public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegate, RoomCaptureSessionDelegate {
 
-    public var enableMultiRoomMode: Bool = false
+    public var isMultiRoomModeEnabled: Bool = false
     private var isScanning = false
     private var roomCaptureView: RoomCaptureView!
     private var roomCaptureSessionConfig = RoomCaptureSession.Configuration()
-    private var finalResults: CapturedRoom?
+    private var currentCapturedRoom: CapturedRoom?
 
     // load multiple capturedRoom results to capturedRoomArray
     var capturedRoomArray: [CapturedRoom] = []
@@ -93,7 +93,7 @@ import ARKit
         ])
 
         // Set up button constraints based on iOS version and multi-room mode
-        if #available(iOS 17.0, *), enableMultiRoomMode {
+        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
             // iOS 17.0+ with multi-room: Show both buttons side by side
             NSLayoutConstraint.activate([
                 finishButton.trailingAnchor.constraint(equalTo: view.centerXAnchor, constant: -10),
@@ -151,7 +151,7 @@ import ARKit
         finishButton.alpha = 0.0
 
         // Hide scan other rooms button (only relevant for iOS 17.0+ with multi-room)
-        if #available(iOS 17.0, *), enableMultiRoomMode {
+        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
             scanOtherRoomsButton.isHidden = true
             scanOtherRoomsButton.alpha = 0.0
         }
@@ -166,7 +166,7 @@ import ARKit
         
         // Use appropriate stop method based on iOS version
         if #available(iOS 17.0, *) {
-            roomCaptureView.captureSession.stop(pauseARSession: !enableMultiRoomMode)
+            roomCaptureView.captureSession.stop(pauseARSession: !isMultiRoomModeEnabled)
         } else {
             roomCaptureView.captureSession.stop()
         }
@@ -178,7 +178,7 @@ import ARKit
         }
 
         // Show scan other rooms button only for iOS 17.0+ with multi-room enabled
-        if #available(iOS 17.0, *), enableMultiRoomMode {
+        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
             scanOtherRoomsButton.isHidden = false
             UIView.animate(withDuration: 0.3) {
                 self.scanOtherRoomsButton.alpha = 1.0
@@ -198,7 +198,7 @@ import ARKit
     }
 
     private func exportToJSON() {
-        guard let finalResults = finalResults else { return }
+        guard let currentCapturedRoom = currentCapturedRoom else { return }
         
 
         do {
@@ -207,10 +207,10 @@ import ARKit
             
             // For iOS 16.0, export single room; for iOS 17.0+ with multi-room, export array
             let dataToExport: Data
-            if #available(iOS 17.0, *), enableMultiRoomMode {
+            if #available(iOS 17.0, *), isMultiRoomModeEnabled {
                 dataToExport = try jsonEncoder.encode(capturedRoomArray)
             } else {
-                dataToExport = try jsonEncoder.encode(finalResults)
+                dataToExport = try jsonEncoder.encode(currentCapturedRoom)
             }
             
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -235,7 +235,7 @@ import ARKit
     }
 
     private func exportToUSDZ() {
-        guard let finalResults = finalResults else { return }
+        guard let currentCapturedRoom = currentCapturedRoom else { return }
 
 
         if #available(iOS 17.0, *) {
@@ -245,10 +245,10 @@ import ARKit
                     let capturedStructure: CapturedStructure
                     
                     // Use merge API for multi-room in iOS 17.0+, single room for others
-                    if enableMultiRoomMode {
+                    if isMultiRoomModeEnabled {
                         capturedStructure = try await structureBuilder.capturedStructure(from: capturedRoomArray)
                     } else {
-                        capturedStructure = try await structureBuilder.capturedStructure(from: [finalResults])
+                        capturedStructure = try await structureBuilder.capturedStructure(from: [currentCapturedRoom])
                     }
 
                     let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -282,7 +282,7 @@ import ARKit
                     let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
                     let fileURL = roomScansFolder.appendingPathComponent(fileName)
 
-                    try finalResults.export(to: fileURL)
+                    try currentCapturedRoom.export(to: fileURL)
                     self.usdzFilePath = fileURL.path
                 } catch {
                     print("Failed to export USDZ file: \(error)")
@@ -294,12 +294,12 @@ import ARKit
     }
 
     public func captureView(didPresent processedResult: CapturedRoom, error: Error?) {
-        finalResults = processedResult
+        currentCapturedRoom = processedResult
         capturedRoomArray.append(processedResult)
         finishButton.isEnabled = true
         
         // Only enable scan other rooms button on iOS 17.0+ with multi-room mode
-        if #available(iOS 17.0, *), enableMultiRoomMode {
+        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
             scanOtherRoomsButton.isEnabled = true
         }
         
@@ -319,7 +319,7 @@ import ARKit
         finishButton.isEnabled = false
         
         // Only disable scan other rooms button on iOS 17.0+ with multi-room mode
-        if #available(iOS 17.0, *), enableMultiRoomMode {
+        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
             scanOtherRoomsButton.isEnabled = false
         }
         
@@ -331,7 +331,7 @@ import ARKit
     }
 
     @objc private func finishAndReturnResult() {
-        guard let finalResults = finalResults else {
+        guard let currentCapturedRoom = currentCapturedRoom else {
             self.dismiss(animated: true)
             return
         }
@@ -343,7 +343,7 @@ import ARKit
                 channel.invokeMethod("onRoomCaptureFinished", arguments: nil)
             }
         } catch {
-            print("Failed to encode finalResults: \(error)")
+            print("Failed to encode currentCapturedRoom: \(error)")
         }
 
         self.dismiss(animated: true)
@@ -352,12 +352,12 @@ import ARKit
     // ADDED: New method to handle scanning additional rooms in multi-room mode (iOS 17.0+ only)
     @objc private func scanOtherRooms() {
         // This method should only be called on iOS 17.0+ with multi-room mode
-        guard #available(iOS 17.0, *), enableMultiRoomMode else {
+        guard #available(iOS 17.0, *), isMultiRoomModeEnabled else {
             return
         }
         
         // Reset the current room scanning state
-        finalResults = nil
+        currentCapturedRoom = nil
         
         // Hide the buttons and start a new scanning session
         finishButton.isEnabled = false

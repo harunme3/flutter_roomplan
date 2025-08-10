@@ -28,7 +28,7 @@ public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
         DispatchQueue.main.async {
         let rootVC = UIApplication.shared.delegate?.window??.rootViewController
         let roomVC = RoomCaptureViewController()
-        roomVC.enableMultiRoomMode = finalEnableMultiRoom
+        roomVC.isMultiRoomModeEnabled = finalEnableMultiRoom
         roomVC.modalPresentationStyle = .fullScreen
         rootVC?.present(roomVC, animated: true, completion: nil)
       }
