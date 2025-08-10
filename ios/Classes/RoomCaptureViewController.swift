@@ -197,104 +197,32 @@ import ARKit
         }
     }
 
+    // ADDED: New method to handle scanning additional rooms in multi-room mode (iOS 17.0+ only)
+    @objc private func scanOtherRooms() {
+        // This method should only be called on iOS 17.0+ with multi-room mode
+        guard #available(iOS 17.0, *), isMultiRoomModeEnabled else {
+            return
+        }
+        
+        // Reset the current room scanning state
+        currentCapturedRoom = nil
+        
+        // Hide the buttons and start a new scanning session
+        finishButton.isEnabled = false
+        scanOtherRoomsButton.isEnabled = false
+        
+        UIView.animate(withDuration: 0.3) {
+            self.finishButton.alpha = 0.0
+            self.scanOtherRoomsButton.alpha = 0.0
+        } completion: { _ in
+            self.finishButton.isHidden = true
+            self.scanOtherRoomsButton.isHidden = true
+            self.startSession()
+        }
+    }
+
     public func captureView(shouldPresent roomDataForProcessing: CapturedRoomData, error: Error?) -> Bool {
         return true
-    }
-
-    private func exportToJSON() {
-        guard let currentCapturedRoom = currentCapturedRoom else { return }
-        
-
-        do {
-            let jsonEncoder = JSONEncoder()
-            jsonEncoder.outputFormatting = [.prettyPrinted]
-            
-            // For iOS 16.0, export single room; for iOS 17.0+ with multi-room, export array
-            let dataToExport: Data
-            if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-                dataToExport = try jsonEncoder.encode(capturedRoomArray)
-            } else {
-                dataToExport = try jsonEncoder.encode(currentCapturedRoom)
-            }
-            
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
-            
-            // Create the RoomDataScans directory if it doesn't exist
-            if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
-                try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
-            }
-            
-            let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).json"
-            let fileURL = roomScansFolder.appendingPathComponent(fileName)
-            
-            try dataToExport.write(to: fileURL)
-            self.jsonFilePath = fileURL.path
-            
-            print("Successfully exported JSON file to: \(fileURL.path)")
-            
-        } catch {
-            print("Failed to export JSON file: \(error)")
-        }
-    }
-
-    private func exportToUSDZ() {
-        guard let currentCapturedRoom = currentCapturedRoom else { return }
-
-
-        if #available(iOS 17.0, *) {
-            Task {
-                do {
-                    let structureBuilder = StructureBuilder(options: [.beautifyObjects])
-                    let capturedStructure: CapturedStructure
-                    
-                    // Use merge API for multi-room in iOS 17.0+, single room for others
-                    if isMultiRoomModeEnabled {
-                        capturedStructure = try await structureBuilder.capturedStructure(from: capturedRoomArray)
-                    } else {
-                        capturedStructure = try await structureBuilder.capturedStructure(from: [currentCapturedRoom])
-                    }
-
-                    let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                    let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
-
-                    if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
-                        try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
-                    }
-
-                    let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
-                    let fileURL = roomScansFolder.appendingPathComponent(fileName)
-
-                    try capturedStructure.export(to: fileURL)
-                    self.usdzFilePath = fileURL.path
-                } catch {
-                    print("Failed to export USDZ file: \(error)")
-                }
-            }
-        } else if #available(iOS 16.0, *) {
-            // For iOS 16.0, use the single room export method
-            Task {
-                do {
-               
-                    let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                    let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
-
-                    if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
-                        try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
-                    }
-
-                    let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
-                    let fileURL = roomScansFolder.appendingPathComponent(fileName)
-
-                    try currentCapturedRoom.export(to: fileURL)
-                    self.usdzFilePath = fileURL.path
-                } catch {
-                    print("Failed to export USDZ file: \(error)")
-                }
-            }
-        } else {
-            print("USDZ export is only supported on iOS 16.0 or newer")
-        }
     }
 
     public func captureView(didPresent processedResult: CapturedRoom, error: Error?) {
@@ -331,52 +259,172 @@ import ARKit
         self.dismiss(animated: true)
     }
 
+
+      private func exportToJSON() async -> Bool {
+        guard let currentCapturedRoom = currentCapturedRoom else { 
+            print("No captured room data to export")
+            return false 
+        }
+        
+        do {
+            let jsonEncoder = JSONEncoder()
+            jsonEncoder.outputFormatting = [.prettyPrinted]
+            
+            // For iOS 16.0, export single room; for iOS 17.0+ with multi-room, export array
+            let dataToExport: Data
+            if #available(iOS 17.0, *), isMultiRoomModeEnabled {
+                dataToExport = try jsonEncoder.encode(capturedRoomArray)
+            } else {
+                dataToExport = try jsonEncoder.encode(currentCapturedRoom)
+            }
+            
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
+            
+            // Create the RoomDataScans directory if it doesn't exist
+            if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
+                try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
+            }
+            
+            let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).json"
+            let fileURL = roomScansFolder.appendingPathComponent(fileName)
+            
+            try dataToExport.write(to: fileURL)
+            self.jsonFilePath = fileURL.path
+            
+            print("Successfully exported JSON file to: \(fileURL.path)")
+            return true
+            
+        } catch {
+            print("Failed to export JSON file: \(error)")
+            return false
+        }
+    }
+
+
+    private func exportToUSDZ() async -> Bool {
+        guard let currentCapturedRoom = currentCapturedRoom else {
+            print("No captured room data to export")
+            return false
+        }
+
+        if #available(iOS 17.0, *) {
+            do {
+                let structureBuilder = StructureBuilder(options: [.beautifyObjects])
+                let capturedStructure: CapturedStructure
+                
+                // Use merge API for multi-room in iOS 17.0+, single room for others
+                if isMultiRoomModeEnabled {
+                    capturedStructure = try await structureBuilder.capturedStructure(from: capturedRoomArray)
+                } else {
+                    capturedStructure = try await structureBuilder.capturedStructure(from: [currentCapturedRoom])
+                }
+
+                let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
+
+                if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
+                    try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
+                }
+
+                let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
+                let fileURL = roomScansFolder.appendingPathComponent(fileName)
+
+                try capturedStructure.export(to: fileURL)
+                self.usdzFilePath = fileURL.path
+                
+                print("Successfully exported USDZ file to: \(fileURL.path)")
+                return true
+                
+            } catch {
+                print("Failed to export USDZ file: \(error)")
+                return false
+            }
+        } else if #available(iOS 16.0, *) {
+            // For iOS 16.0, use the single room export method
+            do {
+                let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
+
+                if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
+                    try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
+                }
+
+                let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
+                let fileURL = roomScansFolder.appendingPathComponent(fileName)
+
+                try currentCapturedRoom.export(to: fileURL)
+                self.usdzFilePath = fileURL.path
+                
+                print("Successfully exported USDZ file to: \(fileURL.path)")
+                return true
+                
+            } catch {
+                print("Failed to export USDZ file: \(error)")
+                return false
+            }
+        } else {
+            print("USDZ export is only supported on iOS 16.0 or newer")
+            return false
+        }
+    }
+
+
     @objc private func finishAndReturnResult() {
         guard let currentCapturedRoom = currentCapturedRoom else {
             self.dismiss(animated: true)
             return
         }
 
-        do {
-            // Export files
-            exportToUSDZ()
-            exportToJSON()
-            
-           // Send notification to Flutter via MethodChannel
-            if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
-                let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
-                channel.invokeMethod("onRoomCaptureFinished", arguments: nil)
-            }
-        } catch {
-            print("Failed to encode currentCapturedRoom: \(error)")
-        }
-
-        self.dismiss(animated: true)
-    }
-
-    // ADDED: New method to handle scanning additional rooms in multi-room mode (iOS 17.0+ only)
-    @objc private func scanOtherRooms() {
-        // This method should only be called on iOS 17.0+ with multi-room mode
-        guard #available(iOS 17.0, *), isMultiRoomModeEnabled else {
-            return
-        }
-        
-        // Reset the current room scanning state
-        currentCapturedRoom = nil
-        
-        // Hide the buttons and start a new scanning session
+        // Show activity indicator while exporting
+        activityIndicator.startAnimating()
         finishButton.isEnabled = false
-        scanOtherRoomsButton.isEnabled = false
         
-        UIView.animate(withDuration: 0.3) {
-            self.finishButton.alpha = 0.0
-            self.scanOtherRoomsButton.alpha = 0.0
-        } completion: { _ in
-            self.finishButton.isHidden = true
-            self.scanOtherRoomsButton.isHidden = true
-            self.startSession()
+        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
+            scanOtherRoomsButton.isEnabled = false
+        }
+
+    Task {
+        do {
+            // Export both files and wait for completion
+            let usdzSuccess = await exportToUSDZ()
+            let jsonSuccess = await exportToJSON()
+            
+            // Only call Flutter after both exports succeed
+            await MainActor.run {
+                    self.activityIndicator.stopAnimating()
+                    
+                    if usdzSuccess && jsonSuccess {
+                        // Both exports succeeded, notify Flutter
+                        if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
+                            let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
+                            channel.invokeMethod("onRoomCaptureFinished", arguments: nil)
+                        }
+                        print("Export completed successfully")
+                    } else {
+                        // One or both exports failed
+                        print("Export failed - USDZ: \(usdzSuccess), JSON: \(jsonSuccess)")
+                        // You might want to show an alert to the user here
+                    }
+                    
+                    self.dismiss(animated: true)
+                }
+        } catch {
+            await MainActor.run {
+                self.activityIndicator.stopAnimating()
+                finishButton.isEnabled = true
+                if #available(iOS 17.0, *), isMultiRoomModeEnabled {
+                    scanOtherRoomsButton.isEnabled = true
+                }
+                print("Export failed: \(error)")
+                // Handle export failure
+                self.dismiss(animated: true)
+            }
         }
     }
+  }
+
+
 
       private func cleanupOldScanFiles(keepLastCount: Int = 10) {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
