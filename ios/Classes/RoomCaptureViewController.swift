@@ -30,6 +30,8 @@ import ARKit
         setupUI()
         setupRoomCaptureView()
         activityIndicator.stopAnimating()
+        // Clean up old files first
+        cleanupOldScanFiles()
     }
 
     @objc public static func isSupported() -> Bool {
@@ -144,8 +146,6 @@ import ARKit
     }
 
     private func startSession() {
-        // Clean up old files first
-        cleanupOldScanFiles(keepLastCount: 10)
 
         isScanning = true
         roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
