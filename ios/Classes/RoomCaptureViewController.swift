@@ -256,6 +256,7 @@ import ARKit
 
     @objc private func doneScanning() {
         stopSession()
+        activityIndicator.startAnimating()
     }
 
     @objc private func cancelScanning() {
