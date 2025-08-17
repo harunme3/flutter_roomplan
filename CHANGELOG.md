@@ -1,3 +1,16 @@
+## 1.0.1
+
+- Added Multi Room Support
+- Added Scan Other Rooms Support
+- Added USDZ export support
+- Added json export support
+- Added RoomPlan scanning functionality
+- Added Documentation
+- Added Example Project
+
+
+
+
 ## 0.0.4
 
 - Bug Fixes
