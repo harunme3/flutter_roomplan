@@ -232,6 +232,15 @@ import ARKit
     }
 
     public func captureView(didPresent processedResult: CapturedRoom, error: Error?) {
+        if let error = error {
+            // Notify Flutter about room processing error
+            if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
+                let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
+                channel.invokeMethod("onErrorDetection", arguments: ["errorCode": "ROOM_PROCESSING_FAILED", "errorMessage": "Failed to process room data: \(error.localizedDescription)"])
+            }
+            return
+        }
+        
         currentCapturedRoom = processedResult
         capturedRoomArray.append(processedResult)
         finishButton.isEnabled = true
@@ -404,7 +413,14 @@ import ARKit
                     } else {
                         // One or both exports failed
                         print("Export failed - USDZ: \(usdzSuccess), JSON: \(jsonSuccess)")
-                        // You might want to show an alert to the user here
+                        
+                        // Notify Flutter about export failure
+                        if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
+                            let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
+                            let errorCode = !usdzSuccess && !jsonSuccess ? "EXPORT_FAILED" : (!usdzSuccess ? "USDZ_EXPORT_FAILED" : "JSON_EXPORT_FAILED")
+                            let errorMessage = !usdzSuccess && !jsonSuccess ? "Both USDZ and JSON export failed" : (!usdzSuccess ? "USDZ file export failed" : "JSON file export failed")
+                            channel.invokeMethod("onErrorDetection", arguments: ["errorCode": errorCode, "errorMessage": errorMessage])
+                        }
                     }
                     
                     self.dismiss(animated: true)
@@ -417,7 +433,13 @@ import ARKit
                     addMoreRooms.isEnabled = true
                 }
                 print("Export failed: \(error)")
-                // Handle export failure
+                
+                // Notify Flutter about unexpected export error
+                if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
+                    let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
+                    channel.invokeMethod("onErrorDetection", arguments: ["errorCode": "EXPORT_EXCEPTION", "errorMessage": "Unexpected error during export: \(error.localizedDescription)"])
+                }
+                
                 self.dismiss(animated: true)
             }
         }

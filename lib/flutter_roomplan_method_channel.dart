@@ -11,6 +11,7 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   VoidCallback? _captureFinishedHandler;
   VoidCallback? _scanOtherRoomsHandler;
   VoidCallback? _scanCancelHandler;
+  void Function(String errorCode, String errorMessage)? _errorDetectionHandler;
   bool _isHandlerSetup = false;
 
   void _setupMethodCallHandler() {
@@ -24,6 +25,14 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
         }
         if (call.method == 'onScanCancelRequested') {
           _scanCancelHandler?.call();
+        }
+        if (call.method == 'onErrorDetection') {
+          final arguments = call.arguments as Map<String, dynamic>?;
+          if (arguments != null) {
+            final errorCode = arguments['errorCode'] as String? ?? '';
+            final errorMessage = arguments['errorMessage'] as String? ?? '';
+            _errorDetectionHandler?.call(errorCode, errorMessage);
+          }
         }
       });
       _isHandlerSetup = true;
@@ -52,6 +61,12 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   @override
   void onScanCancelRequested(VoidCallback handler) {
     _scanCancelHandler = handler;
+    _setupMethodCallHandler();
+  }
+
+  @override
+  void onErrorDetection(void Function(String errorCode, String errorMessage) handler) {
+    _errorDetectionHandler = handler;
     _setupMethodCallHandler();
   }
 
