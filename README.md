@@ -7,10 +7,11 @@ Capture accurate 3D room scans using ARKit with this powerful plugin. Perfect fo
 
 ## ⚠️ Requirements
 
-- **iOS 16+**
+- **iOS 16.0+** (for single room scanning)
+- **iOS 17.0+** (for multi-room merge support)
 - **ARKit-compatible device**:  
   iPhone 12 or later, or recent iPad Pro
-- **LiDAR Scanner** required for accurate room scanning
+- **LiDAR Scanner** **required** for room scanning functionality
 
 ---
 
@@ -22,6 +23,8 @@ Capture accurate 3D room scans using ARKit with this powerful plugin. Perfect fo
 - 🚀 Returns complete `CapturedRoom` JSON specification
 - 📱 Device compatibility checking
 - 📦 USDZ file export support
+- 📜 **JSON file export support** for room data and metadata
+- 🏘️ **Multi-room merge support** (iOS 17.0+) for scanning and combining multiple rooms
 
 ---
 
@@ -56,29 +59,42 @@ final roomPlan = FlutterRoomplan();
 
 // Check if device supports RoomPlan
 final isSupported = await roomPlan.isSupported();
+final isMultiRoomSupported = await roomPlan.isMultiRoomSupported();
 
 // Register callback for scan results
-roomPlan.onRoomCaptureFinished((resultJson) {
-  print('Room scan completed: $resultJson');
+roomPlan.onRoomCaptureFinished(() async {
+  print('Room scan completed');
+  // Get file paths after scan
+  final usdzPath = await roomPlan.getUsdzFilePath();
+  final jsonPath = await roomPlan.getJsonFilePath();
+  print('USDZ: $usdzPath');
+  print('JSON: $jsonPath');
 });
 
-// Start room scanning
+// Start single room scanning
 try {
   await roomPlan.startScan();
 } catch (e) {
   print('Error starting scan: $e');
 }
 
-// Get USDZ file path after scan (if available)
-final usdzPath = await roomPlan.getUsdzFilePath();
+// Start multi-room scanning (iOS 17.0+)
+try {
+  await roomPlan.startScan(enableMultiRoom: true);
+} catch (e) {
+  print('Error starting multi-room scan: $e');
+}
 ```
 
 ### 3️⃣ Available Methods
 
-- `isSupported()`: Check if the device supports RoomPlan
-- `startScan()`: Launch the room scanning interface
+- `isSupported()`: Check if the device supports RoomPlan (iOS 16.0+)
+- `isMultiRoomSupported()`: Check if the device supports multi-room merge (iOS 17.0+)
+- `startScan()`: Launch single room scanning interface
+- `startScan(enableMultiRoom: true)`: Launch multi-room merge scanning (iOS 17.0+)
 - `onRoomCaptureFinished()`: Register callback for scan results
 - `getUsdzFilePath()`: Get path to exported USDZ file from last scan
+- `getJsonFilePath()`: Get path to exported JSON file from last scan
 
 ### 4️⃣ Error Handling
 
@@ -97,9 +113,12 @@ Always wrap `startScan()` in a try-catch block and check device support before s
 Check out the [example app](example/lib/main.dart) for a complete implementation showing:
 
 - Device support checking
-- Scan initiation
+- Multi-room support detection
+- Single room scanning
+- Multi-room merge scanning (iOS 17.0+)
 - Result handling
 - USDZ file path retrieval
+- JSON file path retrieval
 - Error management
 
 ---
@@ -108,9 +127,11 @@ Check out the [example app](example/lib/main.dart) for a complete implementation
 
 ### Multiple Rooms Scanning
 
+- **Multi-room merge support** available on iOS 17.0+ devices
+- Single room scanning supported on iOS 16.0+
 - Can produce inaccurate data during extended scanning sessions
 - Device may experience overheating on longer scans
-- Best practice: Scan one room at a time with cooling breaks between scans
+- Best practice: For iOS 16 devices, scan one room at a time with cooling breaks between scans
 
 ### Surface Shape Detection
 
