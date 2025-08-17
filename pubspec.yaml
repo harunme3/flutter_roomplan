@@ -8,19 +8,10 @@ issue_tracker: https://github.com/harunme3/flutter_roomplan/issues
 topics:
   - roomplan
   - arkit
-  - 3d-scanning
-  - room-scanning
   - lidar
   - usdz
-  - json-export
   - multi-room
-  - ar-measurement
-  - interior-design
-  - smart-home
-  - augmented-reality
-  - ios
-  - apple
-  - room-capture
+
 
 environment:
   sdk: ^3.8.1
