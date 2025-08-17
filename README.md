@@ -46,7 +46,7 @@ Add to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_roomplan: ^1.1.0
+  flutter_roomplan: latest_version
 ```
 
 ### 2️⃣ Basic Usage
