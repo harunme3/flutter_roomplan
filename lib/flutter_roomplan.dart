@@ -12,8 +12,8 @@ class FlutterRoomplan {
     FlutterRoomplanPlatform.instance.onRoomCaptureFinished(handler);
   }
 
-  void onScanOtherRoomsRequested(VoidCallback handler) {
-    FlutterRoomplanPlatform.instance.onScanOtherRoomsRequested(handler);
+  void onaddMoreRoomsRequested(VoidCallback handler) {
+    FlutterRoomplanPlatform.instance.onaddMoreRoomsRequested(handler);
   }
 
   void onScanCancelRequested(VoidCallback handler) {

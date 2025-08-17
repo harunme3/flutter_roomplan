@@ -33,9 +33,9 @@ abstract class FlutterRoomplanPlatform extends PlatformInterface {
     );
   }
 
-  void onScanOtherRoomsRequested(VoidCallback handler) {
+  void onaddMoreRoomsRequested(VoidCallback handler) {
     throw UnimplementedError(
-      'onScanOtherRoomsRequested() has not been implemented.',
+      'onaddMoreRoomsRequested() has not been implemented.',
     );
   }
 
@@ -45,10 +45,10 @@ abstract class FlutterRoomplanPlatform extends PlatformInterface {
     );
   }
 
-  void onErrorDetection(void Function(String errorCode, String errorMessage) handler) {
-    throw UnimplementedError(
-      'onErrorDetection() has not been implemented.',
-    );
+  void onErrorDetection(
+    void Function(String errorCode, String errorMessage) handler,
+  ) {
+    throw UnimplementedError('onErrorDetection() has not been implemented.');
   }
 
   Future<bool> isSupported() {

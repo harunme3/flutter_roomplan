@@ -27,7 +27,7 @@ class _MyAppState extends State<MyApp> {
       _checkSupport();
     });
 
-    flutterRoomplan.onScanOtherRoomsRequested(() async {
+    flutterRoomplan.onaddMoreRoomsRequested(() async {
       debugPrint('Scan other rooms requested');
       //add new entries in list for room when scan other rooms is requested
     });

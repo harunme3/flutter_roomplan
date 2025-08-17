@@ -9,7 +9,7 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   final methodChannel = const MethodChannel('rkg/flutter_roomplan');
 
   VoidCallback? _captureFinishedHandler;
-  VoidCallback? _scanOtherRoomsHandler;
+  VoidCallback? _addMoreRoomsHandler;
   VoidCallback? _scanCancelHandler;
   void Function(String errorCode, String errorMessage)? _errorDetectionHandler;
   bool _isHandlerSetup = false;
@@ -20,8 +20,8 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
         if (call.method == 'onRoomCaptureFinished') {
           _captureFinishedHandler?.call();
         }
-        if (call.method == 'onScanOtherRoomsRequested') {
-          _scanOtherRoomsHandler?.call();
+        if (call.method == 'onaddMoreRoomsRequested') {
+          _addMoreRoomsHandler?.call();
         }
         if (call.method == 'onScanCancelRequested') {
           _scanCancelHandler?.call();
@@ -53,8 +53,8 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   }
 
   @override
-  void onScanOtherRoomsRequested(VoidCallback handler) {
-    _scanOtherRoomsHandler = handler;
+  void onaddMoreRoomsRequested(VoidCallback handler) {
+    _addMoreRoomsHandler = handler;
     _setupMethodCallHandler();
   }
 
@@ -65,7 +65,9 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   }
 
   @override
-  void onErrorDetection(void Function(String errorCode, String errorMessage) handler) {
+  void onErrorDetection(
+    void Function(String errorCode, String errorMessage) handler,
+  ) {
     _errorDetectionHandler = handler;
     _setupMethodCallHandler();
   }
