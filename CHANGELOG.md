@@ -1,3 +1,8 @@
+## 1.0.4
+
+- Added Object Detection Support
+    
+
 ## 1.0.1
 
 - Added Multi Room Support
