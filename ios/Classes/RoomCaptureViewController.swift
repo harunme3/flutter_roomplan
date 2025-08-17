@@ -196,36 +196,6 @@ import ARKit
         }
     }
 
-    // ADDED: New method to handle scanning additional rooms in multi-room mode (iOS 17.0+ only)
-    @objc private func scanOtherRooms() {
-        // This method should only be called on iOS 17.0+ with multi-room mode
-        guard #available(iOS 17.0, *), isMultiRoomModeEnabled else {
-            return
-        }
-        
-        // Reset the current room scanning state
-        currentCapturedRoom = nil
-        
-        // Hide the buttons and start a new scanning session
-        finishButton.isEnabled = false
-        addMoreRooms.isEnabled = false
-        
-        UIView.animate(withDuration: 0.3) {
-            self.finishButton.alpha = 0.0
-            self.addMoreRooms.alpha = 0.0
-        } completion: { _ in
-            self.finishButton.isHidden = true
-            self.addMoreRooms.isHidden = true
-            self.view.isHidden = true
-
-            // Notify Flutter that user wants to scan another room
-            if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
-                let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
-                channel.invokeMethod("onScanOtherRoomsRequested", arguments: nil)
-            }
-            
-        }
-    }
 
     public func captureView(shouldPresent roomDataForProcessing: CapturedRoomData, error: Error?) -> Bool {
         return true
@@ -447,9 +417,39 @@ import ARKit
     }
   }
 
+    // ADDED: New method to handle scanning additional rooms in multi-room mode (iOS 17.0+ only)
+    @objc private func scanOtherRooms() {
+        // This method should only be called on iOS 17.0+ with multi-room mode
+        guard #available(iOS 17.0, *), isMultiRoomModeEnabled else {
+            return
+        }
+        
+        // Reset the current room scanning state
+        currentCapturedRoom = nil
+        
+        // Hide the buttons and start a new scanning session
+        finishButton.isEnabled = false
+        addMoreRooms.isEnabled = false
+        
+        UIView.animate(withDuration: 0.3) {
+            self.finishButton.alpha = 0.0
+            self.addMoreRooms.alpha = 0.0
+        } completion: { _ in
+            self.finishButton.isHidden = true
+            self.addMoreRooms.isHidden = true
+            self.view.isHidden = true
+
+            // Notify Flutter that user wants to scan another room
+            if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
+                let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
+                channel.invokeMethod("onScanOtherRoomsRequested", arguments: nil)
+            }
+            
+        }
+    }
 
 
-      private func cleanupOldScanFiles(keepLastCount: Int = 10) {
+    private func cleanupOldScanFiles(keepLastCount: Int = 10) {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
         
