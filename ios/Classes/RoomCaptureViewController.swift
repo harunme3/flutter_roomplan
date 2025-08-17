@@ -246,23 +246,11 @@ import ARKit
     }
 
     @objc private func doneScanning() {
-        if isScanning {
-            stopSession()
-        } else {
-            cancelScanning()
-        }
-        finishButton.isEnabled = false
-        
-        // Only disable add More Rooms button on iOS 17.0+ with multi-room mode
-        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-            addMoreRooms.isEnabled = false
-        }
-        
-        activityIndicator.startAnimating()
+        stopSession()
     }
 
     @objc private func cancelScanning() {
-        self.view.isHidden = true
+          self.dismiss(animated: true)
 
         // Notify Flutter that user wants to scan another room
         if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
