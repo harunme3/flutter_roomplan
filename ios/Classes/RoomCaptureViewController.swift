@@ -19,7 +19,7 @@ import ARKit
     public  var jsonFilePath: String?
 
     private let finishButton = UIButton(type: .system)
-    private let scanOtherRoomsButton = UIButton(type: .system)
+    private let addMoreRooms = UIButton(type: .system)
     private let activityIndicator = UIActivityIndicatorView(style: .large)
     private let cancelButton = UIButton(type: .system)
     private let doneButton = UIButton(type: .system)
@@ -54,17 +54,17 @@ import ARKit
         finishButton.layer.cornerRadius = 12
         finishButton.addTarget(self, action: #selector(finishAndReturnResult), for: .touchUpInside)
 
-        // Configure Scan Other Rooms Button - Outlined style (only show on iOS 17.0+)
-        scanOtherRoomsButton.setTitle("Scan Other Rooms", for: .normal)
-        scanOtherRoomsButton.isEnabled = false
-        scanOtherRoomsButton.isHidden = true
-        scanOtherRoomsButton.alpha = 0.0
-        scanOtherRoomsButton.backgroundColor = UIColor.clear
-        scanOtherRoomsButton.setTitleColor(UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0), for: .normal)
-        scanOtherRoomsButton.layer.cornerRadius = 12
-        scanOtherRoomsButton.layer.borderWidth = 2.0
-        scanOtherRoomsButton.layer.borderColor = UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0).cgColor
-        scanOtherRoomsButton.addTarget(self, action: #selector(scanOtherRooms), for: .touchUpInside)
+        // Configure Add More Rooms Button - Outlined style (only show on iOS 17.0+)
+        addMoreRooms.setTitle("Add More Rooms", for: .normal)
+        addMoreRooms.isEnabled = false
+        addMoreRooms.isHidden = true
+        addMoreRooms.alpha = 0.0
+        addMoreRooms.backgroundColor = UIColor.clear
+        addMoreRooms.setTitleColor(UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0), for: .normal)
+        addMoreRooms.layer.cornerRadius = 12
+        addMoreRooms.layer.borderWidth = 2.0
+        addMoreRooms.layer.borderColor = UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0).cgColor
+        addMoreRooms.addTarget(self, action: #selector(scanOtherRooms), for: .touchUpInside)
 
         // Configure Cancel and Done Buttons
         cancelButton.setTitle("Cancel", for: .normal)
@@ -74,7 +74,7 @@ import ARKit
         doneButton.addTarget(self, action: #selector(doneScanning), for: .touchUpInside)
 
         // Add subviews
-        [finishButton, scanOtherRoomsButton, cancelButton, doneButton, activityIndicator].forEach {
+        [finishButton, addMoreRooms, cancelButton, doneButton, activityIndicator].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview($0)
         }
@@ -103,10 +103,10 @@ import ARKit
                 finishButton.widthAnchor.constraint(equalToConstant: 120),
                 finishButton.heightAnchor.constraint(equalToConstant: 44),
 
-                scanOtherRoomsButton.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 10),
-                scanOtherRoomsButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
-                scanOtherRoomsButton.widthAnchor.constraint(equalToConstant: 160),
-                scanOtherRoomsButton.heightAnchor.constraint(equalToConstant: 44),
+                addMoreRooms.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 10),
+                addMoreRooms.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
+                addMoreRooms.widthAnchor.constraint(equalToConstant: 160),
+                addMoreRooms.heightAnchor.constraint(equalToConstant: 44),
             ])
         } else {
             // iOS 16.0 or single room mode: Only show finish button centered
@@ -153,10 +153,10 @@ import ARKit
         finishButton.isHidden = true
         finishButton.alpha = 0.0
 
-        // Hide scan other rooms button (only relevant for iOS 17.0+ with multi-room)
+        // Hide add More Rooms button (only relevant for iOS 17.0+ with multi-room)
         if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-            scanOtherRoomsButton.isHidden = true
-            scanOtherRoomsButton.alpha = 0.0
+            addMoreRooms.isHidden = true
+            addMoreRooms.alpha = 0.0
         }
 
         // Show Done button again (in case it was hidden before)
@@ -180,11 +180,11 @@ import ARKit
             self.finishButton.alpha = 1.0
         }
 
-        // Show scan other rooms button only for iOS 17.0+ with multi-room enabled
+        // Show add More Rooms button only for iOS 17.0+ with multi-room enabled
         if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-            scanOtherRoomsButton.isHidden = false
+            addMoreRooms.isHidden = false
             UIView.animate(withDuration: 0.3) {
-                self.scanOtherRoomsButton.alpha = 1.0
+                self.addMoreRooms.alpha = 1.0
             }
         }
 
@@ -208,14 +208,14 @@ import ARKit
         
         // Hide the buttons and start a new scanning session
         finishButton.isEnabled = false
-        scanOtherRoomsButton.isEnabled = false
+        addMoreRooms.isEnabled = false
         
         UIView.animate(withDuration: 0.3) {
             self.finishButton.alpha = 0.0
-            self.scanOtherRoomsButton.alpha = 0.0
+            self.addMoreRooms.alpha = 0.0
         } completion: { _ in
             self.finishButton.isHidden = true
-            self.scanOtherRoomsButton.isHidden = true
+            self.addMoreRooms.isHidden = true
             self.view.isHidden = true
 
             // Notify Flutter that user wants to scan another room
@@ -236,9 +236,9 @@ import ARKit
         capturedRoomArray.append(processedResult)
         finishButton.isEnabled = true
         
-        // Only enable scan other rooms button on iOS 17.0+ with multi-room mode
+        // Only enable add More Rooms button on iOS 17.0+ with multi-room mode
         if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-            scanOtherRoomsButton.isEnabled = true
+            addMoreRooms.isEnabled = true
         }
         
         activityIndicator.stopAnimating()
@@ -253,9 +253,9 @@ import ARKit
         }
         finishButton.isEnabled = false
         
-        // Only disable scan other rooms button on iOS 17.0+ with multi-room mode
+        // Only disable add More Rooms button on iOS 17.0+ with multi-room mode
         if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-            scanOtherRoomsButton.isEnabled = false
+            addMoreRooms.isEnabled = false
         }
         
         activityIndicator.startAnimating()
@@ -393,7 +393,7 @@ import ARKit
         finishButton.isEnabled = false
         
         if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-            scanOtherRoomsButton.isEnabled = false
+            addMoreRooms.isEnabled = false
         }
 
     Task {
@@ -426,7 +426,7 @@ import ARKit
                 self.activityIndicator.stopAnimating()
                 finishButton.isEnabled = true
                 if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-                    scanOtherRoomsButton.isEnabled = true
+                    addMoreRooms.isEnabled = true
                 }
                 print("Export failed: \(error)")
                 // Handle export failure
