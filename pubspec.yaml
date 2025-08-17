@@ -1,7 +1,26 @@
 name: flutter_roomplan
-description: "A Flutter plugin for Apple's RoomPlan API that allows room scanning and USDZ export on iOS devices."
-version: 1.0.3
+description: "A powerful Flutter plugin for Apple's RoomPlan API enabling 3D room scanning, multi-room merge, object detection, and export to USDZ/JSON formats. Perfect for AR measurement, smart home, and interior design apps on iOS 16.0+ devices with LiDAR support."
+version: 1.0.4
 homepage: https://github.com/harunme3/flutter_roomplan
+repository: https://github.com/harunme3/flutter_roomplan
+issue_tracker: https://github.com/harunme3/flutter_roomplan/issues
+
+topics:
+  - roomplan
+  - arkit
+  - 3d-scanning
+  - room-scanning
+  - lidar
+  - usdz
+  - json-export
+  - multi-room
+  - ar-measurement
+  - interior-design
+  - smart-home
+  - augmented-reality
+  - ios
+  - apple
+  - room-capture
 
 environment:
   sdk: ^3.8.1
