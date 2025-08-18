@@ -24,13 +24,17 @@ import ARKit
     private let cancelButton = UIButton(type: .system)
     private let doneButton = UIButton(type: .system)
     
+    // Global variables for room types and design styles from arguments
+    private var roomTypes: [[String: Any]] = []
+    private var designStyles: [[String: Any]] = []
+    
     // Global selection tracking
-    private var selectedRoomTypes: [[String: String]] = []
-    private var selectedDesignStyles: [[String: String]] = []
+    private var selectedRoomTypes: [[String: Any]] = []
+    private var selectedDesignStyles: [[String: Any]] = []
     
     // Current selection for the bottom sheet
-    private var currentSelectedRoomType: [String: String]?
-    private var currentSelectedDesignStyle: [String: String]?
+    private var currentSelectedRoomType: [String: Any]?
+    private var currentSelectedDesignStyle: [String: Any]?
 
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -455,6 +459,14 @@ import ARKit
         }
     }
 
+    public func setRoomTypesAndDesignStyles(roomTypes: [[String: Any]]?, designStyles: [[String: Any]]?) {
+        if let roomTypes = roomTypes {
+            self.roomTypes = roomTypes
+        }
+        if let designStyles = designStyles {
+            self.designStyles = designStyles
+        }
+    }
 
     private func cleanupOldScanFiles(keepLastCount: Int = 10) {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -500,19 +512,8 @@ import ARKit
         currentSelectedDesignStyle = nil
         
         // Data for room types and design styles
-        let roomTypes = [
-            ["id": "1", "displayName": "Bedroom"],
-            ["id": "2", "displayName": "Living Room"],
-            ["id": "3", "displayName": "Kitchen"],
-            ["id": "4", "displayName": "Studio"],
-            ["id": "5", "displayName": "Office"]
-        ]
-        
-        let designStyles = [
-            ["id": "1", "displayName": "Modern"],
-            ["id": "2", "displayName": "Minimalist"],
-            ["id": "3", "displayName": "Contemporary"]
-        ]
+        let roomTypes = self.roomTypes
+        let designStyles = self.designStyles
         
         // Create backdrop view
         let backdropView = UIView()
@@ -723,7 +724,7 @@ import ARKit
         return containerView
     }
     
-    private func createRoomTypeGrid(roomTypes: [[String: String]]) -> UIStackView {
+    private func createRoomTypeGrid(roomTypes: [[String: Any]]) -> UIStackView {
         let mainStackView = UIStackView()
         mainStackView.axis = .vertical
         mainStackView.spacing = 8
@@ -756,11 +757,11 @@ import ARKit
         return mainStackView
     }
     
-    private func createRoomTypeButton(roomType: [String: String]) -> UIButton {
+    private func createRoomTypeButton(roomType: [String: Any]) -> UIButton {
         let button = UIButton(type: .system)
-        button.setTitle(roomType["displayName"], for: .normal)
+        button.setTitle(roomType["displayName"] as? String, for: .normal)
         button.titleLabel?.font = UIFont(name: "Montserrat-SemiBold", size: 16) ?? UIFont.systemFont(ofSize: 16, weight: .semibold)
-        button.tag = Int(roomType["id"] ?? "0") ?? 0
+        button.tag = roomType["id"] as? Int ?? 0
         
         // Check if this room type is already selected globally
         let isAlreadySelected = selectedRoomTypes.contains { selectedRoom in
@@ -791,7 +792,7 @@ import ARKit
         return button
     }
     
-    private func createDesignStyleRow(designStyles: [[String: String]]) -> UIStackView {
+    private func createDesignStyleRow(designStyles: [[String: Any]]) -> UIStackView {
         let stackView = UIStackView()
         stackView.axis = .horizontal
         stackView.spacing = 8
@@ -806,9 +807,9 @@ import ARKit
         
         for (index, style) in designStyles.enumerated() {
             let button = UIButton(type: .system)
-            button.setTitle(style["displayName"], for: .normal)
+            button.setTitle(style["displayName"] as? String, for: .normal)
             button.titleLabel?.font = UIFont(name: "Montserrat-Medium", size: 16) ?? UIFont.systemFont(ofSize: 16, weight: .medium)
-            button.tag = Int(style["id"] ?? "0") ?? 0
+            button.tag = style["id"] as? Int ?? 0
             
             // Check if this design style is already selected globally
             let isAlreadySelected = selectedDesignStyles.contains { selectedStyle in
@@ -872,37 +873,27 @@ import ARKit
     }
     
     @objc private func roomTypeButtonTapped(_ sender: UIButton) {
-        guard let roomTypes = [
-            ["id": "1", "displayName": "Bedroom"],
-            ["id": "2", "displayName": "Living Room"],
-            ["id": "3", "displayName": "Kitchen"],
-            ["id": "4", "displayName": "Studio"],
-            ["id": "5", "displayName": "Office"]
-        ].first(where: { Int($0["id"] ?? "0") == sender.tag }) else { return }
+        guard let roomType = self.roomTypes.first(where: { ($0["id"] as? String) == String(sender.tag) }) else { return }
         
         // Update current selection
-        currentSelectedRoomType = roomTypes
+        currentSelectedRoomType = roomType
         
         // Update UI to show selection
         updateRoomTypeButtonSelection(selectedTag: sender.tag)
         
-        print("Room type selected: \(roomTypes["displayName"] ?? "Unknown")")
+        print("Room type selected: \(roomType["displayName"] ?? "Unknown")")
     }
     
     @objc private func designStyleButtonTapped(_ sender: UIButton) {
-        guard let designStyles = [
-            ["id": "1", "displayName": "Modern"],
-            ["id": "2", "displayName": "Minimalist"],
-            ["id": "3", "displayName": "Contemporary"]
-        ].first(where: { Int($0["id"] ?? "0") == sender.tag }) else { return }
+        guard let designStyle = self.designStyles.first(where: { ($0["id"] as? String) == String(sender.tag) }) else { return }
         
         // Update current selection
-        currentSelectedDesignStyle = designStyles
+        currentSelectedDesignStyle = designStyle
         
         // Update UI to show selection
         updateDesignStyleButtonSelection(selectedTag: sender.tag)
         
-        print("Design style selected: \(designStyles["displayName"] ?? "Unknown")")
+        print("Design style selected: \(designStyle["displayName"] ?? "Unknown")")
     }
     
     private func updateRoomTypeButtonSelection(selectedTag: Int) {
