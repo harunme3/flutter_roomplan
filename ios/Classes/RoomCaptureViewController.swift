@@ -64,7 +64,7 @@ import ARKit
         addMoreRooms.layer.cornerRadius = 12
         addMoreRooms.layer.borderWidth = 2.0
         addMoreRooms.layer.borderColor = UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0).cgColor
-        addMoreRooms.addTarget(self, action: #selector(addMoreRooms), for: .touchUpInside)
+        addMoreRooms.addTarget(self, action: #selector(addMoreRoomsToMerge), for: .touchUpInside)
 
         // Configure Cancel and Done Buttons
         cancelButton.setTitle("Cancel", for: .normal)
@@ -418,7 +418,7 @@ import ARKit
   }
 
     // ADDED: New method to handle scanning additional rooms in multi-room mode (iOS 17.0+ only)
-    @objc private func addMoreRooms() {
+    @objc private func addMoreRoomsToMerge() {
         // This method should only be called on iOS 17.0+ with multi-room mode
         guard #available(iOS 17.0, *), isMultiRoomModeEnabled else {
             return
