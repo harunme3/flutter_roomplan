@@ -28,7 +28,7 @@ import ARKit
         super.viewDidLoad()
         setupUI()
         setupRoomCaptureView()
-        activityIndicator.stopAnimating()
+       // activityIndicator.stopAnimating()
         // Clean up old files first
         cleanupOldScanFiles()
     }
@@ -220,13 +220,13 @@ import ARKit
             addMoreRooms.isEnabled = true
         }
         
-        activityIndicator.stopAnimating()
+        // activityIndicator.stopAnimating()
         
     }
 
     @objc private func doneScanning() {
         stopSession()
-        activityIndicator.startAnimating()
+        // activityIndicator.startAnimating()
     }
 
     @objc private func cancelScanning() {
@@ -357,7 +357,7 @@ import ARKit
         }
 
         // Show activity indicator while exporting
-        activityIndicator.startAnimating()
+        // activityIndicator.startAnimating()
         finishButton.isEnabled = false
         
         if #available(iOS 17.0, *), isMultiRoomModeEnabled {
@@ -372,7 +372,7 @@ import ARKit
             
             // Only call Flutter after both exports succeed
             await MainActor.run {
-                    self.activityIndicator.stopAnimating()
+                    // self.activityIndicator.stopAnimating()
                     
                     if usdzSuccess && jsonSuccess {
                         // Both exports succeeded, notify Flutter
