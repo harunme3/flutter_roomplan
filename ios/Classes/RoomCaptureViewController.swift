@@ -447,10 +447,10 @@ import ARKit
             self.addMoreRooms.isHidden = true
             self.showBottomSheet()
             // Notify Flutter that user wants to scan another room
-            if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
-                let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
-                channel.invokeMethod("onaddMoreRoomsRequested", arguments: nil)
-            }
+            // if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
+            //     let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
+            //     channel.invokeMethod("onaddMoreRoomsRequested", arguments: nil)
+            // }
             
         }
     }
