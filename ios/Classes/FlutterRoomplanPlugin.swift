@@ -13,6 +13,8 @@ public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
     case "startScan":
         let arguments = call.arguments as? [String: Any]
         let enableMultiRoom = arguments?["enableMultiRoom"] as? Bool ?? false
+        //all api info
+        //current selected info
 
         // Multi-room mode is only supported on iOS 17.0+
         let finalEnableMultiRoom: Bool
