@@ -548,27 +548,6 @@ import ARKit
         titleLabel.textAlignment = .center
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         
-        // Scan type section
-        let scanTypeLabel = UILabel()
-        scanTypeLabel.text = "What would you like to scan?"
-        scanTypeLabel.font = UIFont(name: "Montserrat-Bold", size: 16) ?? UIFont.boldSystemFont(ofSize: 16)
-        scanTypeLabel.textColor = UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0)
-        scanTypeLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Single room option
-        let singleRoomView = createScanOptionView(
-            title: "A Single Room",
-            subtitle: "Refresh your existing space with new layouts",
-            isSelected: true
-        )
-        
-        // Entire house option
-        let entireHouseView = createScanOptionView(
-            title: "My Entire House",
-            subtitle: "Find furniture that fits your space",
-            isSelected: false
-        )
-        
         // Room type section
         let roomTypeLabel = UILabel()
         roomTypeLabel.text = "What room are you designing?"
@@ -619,9 +598,6 @@ import ARKit
         scrollView.addSubview(contentView)
         
         contentView.addSubview(titleLabel)
-        contentView.addSubview(scanTypeLabel)
-        contentView.addSubview(singleRoomView)
-        contentView.addSubview(entireHouseView)
         contentView.addSubview(roomTypeLabel)
         contentView.addSubview(roomTypeSubtitle)
         contentView.addSubview(roomTypeStackView)
@@ -665,22 +641,8 @@ import ARKit
             titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
             titleLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
             
-            // Scan type section
-            scanTypeLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 30),
-            scanTypeLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            
-            singleRoomView.topAnchor.constraint(equalTo: scanTypeLabel.bottomAnchor, constant: 15),
-            singleRoomView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            singleRoomView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            singleRoomView.heightAnchor.constraint(equalToConstant: 86),
-            
-            entireHouseView.topAnchor.constraint(equalTo: singleRoomView.bottomAnchor, constant: 8),
-            entireHouseView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            entireHouseView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            entireHouseView.heightAnchor.constraint(equalToConstant: 86),
-            
             // Room type section
-            roomTypeLabel.topAnchor.constraint(equalTo: entireHouseView.bottomAnchor, constant: 25),
+            roomTypeLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 30),
             roomTypeLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             
             roomTypeSubtitle.topAnchor.constraint(equalTo: roomTypeLabel.bottomAnchor, constant: 8),
