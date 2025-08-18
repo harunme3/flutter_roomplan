@@ -2,10 +2,6 @@ import Flutter
 import UIKit
 
 public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
-
-  // Store reference to the room capture view controller
-  private static var sharedRoomVC: RoomCaptureViewController?
-
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: registrar.messenger())
     let instance = FlutterRoomplanPlugin()
@@ -29,31 +25,13 @@ public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
             }
         }
 
-       DispatchQueue.main.async {
-              let rootVC = UIApplication.shared.delegate?.window??.rootViewController
-              
-              // Check if we have an existing room capture view controller
-              if let existingRoomVC = FlutterRoomplanPlugin.sharedRoomVC {
-                  // Reuse existing instance - preserve array data
-                  existingRoomVC.isMultiRoomModeEnabled = finalEnableMultiRoom
-                  existingRoomVC.view.isHidden = false
-                  
-                  // If it's not already presented, present it
-                  if existingRoomVC.presentingViewController == nil {
-                      rootVC?.present(existingRoomVC, animated: true, completion: nil)
-                  }
-              } else {
-                  // Create new instance only if none exists
-                  let roomVC = RoomCaptureViewController()
-                  roomVC.isMultiRoomModeEnabled = finalEnableMultiRoom
-                  roomVC.modalPresentationStyle = .fullScreen
-                  
-                  // Store reference to preserve state
-                  FlutterRoomplanPlugin.sharedRoomVC = roomVC
-                  
-                  rootVC?.present(roomVC, animated: true, completion: nil)
-              }
-          }
+        DispatchQueue.main.async {
+        let rootVC = UIApplication.shared.delegate?.window??.rootViewController
+        let roomVC = RoomCaptureViewController()
+        roomVC.isMultiRoomModeEnabled = finalEnableMultiRoom
+        roomVC.modalPresentationStyle = .fullScreen
+        rootVC?.present(roomVC, animated: true, completion: nil)
+      }
       result(nil)
     case "isSupported":
       result(RoomCaptureViewController.isSupported())
@@ -64,13 +42,13 @@ public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
             result(false)
         }
     case "getUsdzFilePath":
-      if let roomVC = FlutterRoomplanPlugin.sharedRoomVC {
+      if let roomVC = UIApplication.shared.delegate?.window??.rootViewController?.presentedViewController as? RoomCaptureViewController {
         result(roomVC.usdzFilePath)
       } else {
         result(FlutterError(code: "NO_SCAN", message: "No active room scan found", details: nil))
       }
     case "getJsonFilePath":
-      if let roomVC = FlutterRoomplanPlugin.sharedRoomVC {
+      if let roomVC = UIApplication.shared.delegate?.window??.rootViewController?.presentedViewController as? RoomCaptureViewController {
         result(roomVC.jsonFilePath)
       } else {
         result(FlutterError(code: "NO_SCAN", message: "No active room scan found", details: nil))
