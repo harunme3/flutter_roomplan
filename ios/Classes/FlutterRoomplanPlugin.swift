@@ -13,10 +13,6 @@ public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
     case "startScan":
         let arguments = call.arguments as? [String: Any]
         let enableMultiRoom = arguments?["enableMultiRoom"] as? Bool ?? false
-        let roomType = arguments?["roomType"]
-        let designStyle = arguments?["designStyle"]
-        //all api info
-        //current selected info
 
         // Multi-room mode is only supported on iOS 17.0+
         let finalEnableMultiRoom: Bool
@@ -33,12 +29,6 @@ public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
         let rootVC = UIApplication.shared.delegate?.window??.rootViewController
         let roomVC = RoomCaptureViewController()
         roomVC.isMultiRoomModeEnabled = finalEnableMultiRoom
-        
-        // Set room types and design styles from arguments
-        let roomTypesArray = roomType as? [[String: Any]]
-        let designStylesArray = designStyle as? [[String: Any]]
-        roomVC.setRoomTypesAndDesignStyles(roomTypes: roomTypesArray, designStyles: designStylesArray)
-        
         roomVC.modalPresentationStyle = .fullScreen
         rootVC?.present(roomVC, animated: true, completion: nil)
       }
