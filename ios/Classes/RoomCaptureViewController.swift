@@ -343,6 +343,13 @@ import ARKit
 
     @objc private func cancelScanning() {
         // CHANGE 10: Reset multi-room state on cancel
+        if isScanning {
+            if #available(iOS 17.0, *) {
+                roomCaptureView.captureSession.stop(pauseARSession: false)
+            } else {
+                roomCaptureView.captureSession.stop()
+            }
+        }
         resetMultiRoomState()
         
         self.dismiss(animated: true)
@@ -354,29 +361,36 @@ import ARKit
         }
     }
 
-    // CHANGE 10: Reset multi-room state and clear persistent storage
-    private func resetMultiRoomState() {
-        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
 
-            if isScanning {
-            if #available(iOS 17.0, *) {
-                roomCaptureView.captureSession.stop(pauseARSession: false)
+    private func resetMultiRoomState() async -> Bool {
+    if #available(iOS 17.0, *), isMultiRoomModeEnabled {
+        savedWorldMap = nil
+        capturedRoomArray.removeAll()
+        currentCapturedRoom = nil
+        isScanning = false
+
+        // Reset configuration to clear any saved world map
+        roomCaptureSessionConfig = RoomCaptureSession.Configuration()
+
+        do {
+            if FileManager.default.fileExists(atPath: worldMapFileURL.path) {
+                try FileManager.default.removeItem(at: worldMapFileURL)
+                print("Multi-room state reset - ARWorldMap cleared from memory and disk")
             } else {
-                roomCaptureView.captureSession.stop()
+                print("No saved ARWorldMap found on disk")
             }
-           }
-            savedWorldMap = nil
-            capturedRoomArray.removeAll()
-            currentCapturedRoom = nil
-            isScanning = false
-
-            // Reset configuration to clear any saved world map
-            roomCaptureSessionConfig = RoomCaptureSession.Configuration()
-            // Remove saved ARWorldMap file
-            try? FileManager.default.removeItem(at: worldMapFileURL)
-            print("Multi-room state reset - ARWorldMap cleared from memory and disk")
+            return true
+        } catch {
+            print("Error deleting ARWorldMap file: \(error)")
+            return false
         }
     }
+
+    // If iOS version < 17 or multi-room mode disabled
+    print("resetMultiRoomState skipped: Not supported or multi-room mode disabled")
+    return false
+   }
+
 
     private func exportToJSON() async -> Bool {
         guard let currentCapturedRoom = currentCapturedRoom else { 
@@ -506,6 +520,10 @@ import ARKit
                 let usdzSuccess = await exportToUSDZ()
                 let jsonSuccess = await exportToJSON()
                 
+                // Reset multi-room state after exporting
+                let resetSuccess = await resetMultiRoomState()
+                print("Reset multi-room state result: \(resetSuccess)")
+                
                 // Only call Flutter after both exports succeed
                 await MainActor.run {
                     // self.activityIndicator.stopAnimating()
@@ -517,9 +535,7 @@ import ARKit
                             channel.invokeMethod("onRoomCaptureFinished", arguments: nil)
                         }
                         print("Export completed successfully")
-                        
-                        // CHANGE 12: Reset multi-room state after successful completion
-                        self.resetMultiRoomState()
+                       
                     } else {
                         // One or both exports failed
                         print("Export failed - USDZ: \(usdzSuccess), JSON: \(jsonSuccess)")
