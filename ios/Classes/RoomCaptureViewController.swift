@@ -164,14 +164,21 @@ import ARKit
                 print("Loading saved ARWorldMap for additional room scan")
                 
                 // First run AR relocalization with the world map
+                 roomCaptureSessionConfig = RoomCaptureSession.Configuration()
+                 let arSession = roomCaptureView.captureSession.arSession
+
                 let arWorldTrackingConfig = ARWorldTrackingConfiguration()
                 arWorldTrackingConfig.initialWorldMap = worldMap
+
+                if roomCaptureView.captureSession.arSession.currentFrame != nil {
+                roomCaptureView.captureSession.stop()
+            }
                 
                 // Run ARKit relocalization with reset options for proper world alignment
-                roomCaptureView.captureSession.arSession.run(arWorldTrackingConfig, options: [.resetTracking, .removeExistingAnchors])
+                arSession.run(arWorldTrackingConfig, options: [.resetTracking, .removeExistingAnchors])
                 
                 // Wait briefly for relocalization, then start room capture
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                     // Start room scan with configuration
                     self.roomCaptureView.captureSession.run(configuration: self.roomCaptureSessionConfig)
                     print("Room capture started with loaded ARWorldMap")
@@ -179,10 +186,12 @@ import ARKit
             } else {
                 // No ARWorldMap: Start fresh first room scan
                 print("Starting fresh room scan - no saved ARWorldMap found")
+                roomCaptureSessionConfig = RoomCaptureSession.Configuration()
                 roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
             }
         } else {
             // Single room mode or iOS 16.0
+            roomCaptureSessionConfig = RoomCaptureSession.Configuration()
             roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
         }
         
@@ -348,8 +357,19 @@ import ARKit
     // CHANGE 10: Reset multi-room state and clear persistent storage
     private func resetMultiRoomState() {
         if #available(iOS 17.0, *), isMultiRoomModeEnabled {
+
+            if isScanning {
+            if #available(iOS 17.0, *) {
+                roomCaptureView.captureSession.stop(pauseARSession: false)
+            } else {
+                roomCaptureView.captureSession.stop()
+            }
+           }
             savedWorldMap = nil
             capturedRoomArray.removeAll()
+            currentCapturedRoom = nil
+            isScanning = false
+
             // Reset configuration to clear any saved world map
             roomCaptureSessionConfig = RoomCaptureSession.Configuration()
             // Remove saved ARWorldMap file
