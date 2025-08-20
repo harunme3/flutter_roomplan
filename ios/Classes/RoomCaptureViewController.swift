@@ -167,8 +167,8 @@ import ARKit
                 let arWorldTrackingConfig = ARWorldTrackingConfiguration()
                 arWorldTrackingConfig.initialWorldMap = worldMap
                 
-                // Run ARKit relocalization
-                roomCaptureView.captureSession.arSession.run(arWorldTrackingConfig, options: [])
+                // Run ARKit relocalization with reset options for proper world alignment
+                roomCaptureView.captureSession.arSession.run(arWorldTrackingConfig, options: [.resetTracking, .removeExistingAnchors])
                 
                 // Wait briefly for relocalization, then start room capture
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
