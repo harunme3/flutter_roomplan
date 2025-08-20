@@ -350,7 +350,13 @@ import ARKit
                 roomCaptureView.captureSession.stop()
             }
         }
-        // resetMultiRoomState()
+
+         Task {
+            let success = await resetMultiRoomState()
+            if !success {
+                print("Failed to reset multi-room state")
+            }
+        }
         
         self.dismiss(animated: true)
 
