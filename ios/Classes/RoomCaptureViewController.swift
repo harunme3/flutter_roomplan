@@ -14,6 +14,12 @@ import ARKit
     // load multiple capturedRoom results to capturedRoomArray
     var capturedRoomArray: [CapturedRoom] = []
 
+    // CHANGE 1: Add ARWorldMap management for multi-room capture with persistent storage
+    private var savedWorldMap: ARWorldMap?
+    private let worldMapFileURL: URL = {
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        return documentsPath.appendingPathComponent("RoomScanWorldMap.dat")
+    }()
     
     public  var usdzFilePath: String?
     public  var jsonFilePath: String?
@@ -28,9 +34,12 @@ import ARKit
         super.viewDidLoad()
         setupUI()
         setupRoomCaptureView()
-       // activityIndicator.stopAnimating()
+        // activityIndicator.stopAnimating()
         // Clean up old files first
         cleanupOldScanFiles()
+        
+        // CHANGE: Load existing ARWorldMap if available
+        loadSavedWorldMap()
     }
 
     @objc public static func isSupported() -> Bool {
@@ -144,10 +153,38 @@ import ARKit
         stopSession()
     }
 
+    // CHANGE 2: Updated startSession with persistent ARWorldMap detection
     private func startSession() {
-
         isScanning = true
-        roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
+        
+        // CHANGE 3: Configure session based on saved ARWorldMap availability
+        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
+            if let worldMap = savedWorldMap {
+                // ARWorldMap exists: Load it for additional room scanning
+                print("Loading saved ARWorldMap for additional room scan")
+                
+                // First run AR relocalization with the world map
+                let arWorldTrackingConfig = ARWorldTrackingConfiguration()
+                arWorldTrackingConfig.initialWorldMap = worldMap
+                
+                // Run ARKit relocalization
+                roomCaptureView.captureSession.arSession.run(arWorldTrackingConfig, options: [])
+                
+                // Wait briefly for relocalization, then start room capture
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    // Start room scan with configuration
+                    self.roomCaptureView.captureSession.run(configuration: self.roomCaptureSessionConfig)
+                    print("Room capture started with loaded ARWorldMap")
+                }
+            } else {
+                // No ARWorldMap: Start fresh first room scan
+                print("Starting fresh room scan - no saved ARWorldMap found")
+                roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
+            }
+        } else {
+            // Single room mode or iOS 16.0
+            roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
+        }
         
         // Hide Finish button
         finishButton.isHidden = true
@@ -164,12 +201,18 @@ import ARKit
         doneButton.alpha = 1.0
     }
 
+    // CHANGE 4: Updated stopSession to save ARWorldMap when needed
     private func stopSession() {
         isScanning = false
         
-        // Use appropriate stop method based on iOS version
+        // CHANGE 5: Save ARWorldMap for future multi-room sessions (if no existing map)
+        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
+            saveCurrentARWorldMap()
+        }
+        
+        // CHANGE 6: Always fully stop session - each room is discrete
         if #available(iOS 17.0, *) {
-            roomCaptureView.captureSession.stop(pauseARSession: !isMultiRoomModeEnabled)
+            roomCaptureView.captureSession.stop(pauseARSession: false)
         } else {
             roomCaptureView.captureSession.stop()
         }
@@ -196,6 +239,69 @@ import ARKit
         }
     }
 
+    // CHANGE 7: ARWorldMap persistent storage for multi-room continuity
+    @available(iOS 17.0, *)
+    private func saveCurrentARWorldMap() {
+        guard isMultiRoomModeEnabled else { return }
+        
+        print("Saving ARWorldMap persistently for future room scans...")
+        let arSession = roomCaptureView.captureSession.arSession
+        arSession.getCurrentWorldMap { [weak self] worldMap, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("Failed to save ARWorldMap: \(error.localizedDescription)")
+                    self?.notifyFlutterError(code: "WORLDMAP_SAVE_FAILED", message: "Failed to save AR world map: \(error.localizedDescription)")
+                } else if let worldMap = worldMap {
+                    self?.savedWorldMap = worldMap
+                    self?.saveWorldMapToDisk(worldMap)
+                    print("Successfully saved ARWorldMap with \(worldMap.anchors.count) anchors")
+                } else {
+                    print("No ARWorldMap available to save")
+                    self?.notifyFlutterError(code: "WORLDMAP_EMPTY", message: "No AR world map available for multi-room scanning")
+                }
+            }
+        }
+    }
+    
+    // CHANGE: Save ARWorldMap to persistent storage
+    private func saveWorldMapToDisk(_ worldMap: ARWorldMap) {
+        do {
+            let data = try NSKeyedArchiver.archivedData(withRootObject: worldMap, requiringSecureCoding: true)
+            try data.write(to: worldMapFileURL)
+            print("ARWorldMap saved to disk at: \(worldMapFileURL.path)")
+        } catch {
+            print("Failed to save ARWorldMap to disk: \(error)")
+            notifyFlutterError(code: "WORLDMAP_DISK_SAVE_FAILED", message: "Failed to save world map to disk: \(error.localizedDescription)")
+        }
+    }
+    
+    // CHANGE: Load ARWorldMap from persistent storage
+    private func loadSavedWorldMap() {
+        guard FileManager.default.fileExists(atPath: worldMapFileURL.path) else {
+            print("No saved ARWorldMap found")
+            return
+        }
+        
+        do {
+            let data = try Data(contentsOf: worldMapFileURL)
+            if let worldMap = try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: data) {
+                savedWorldMap = worldMap
+                print("Successfully loaded ARWorldMap from disk with \(worldMap.anchors.count) anchors")
+            }
+        } catch {
+            print("Failed to load ARWorldMap from disk: \(error)")
+            // Clean up corrupted file
+            try? FileManager.default.removeItem(at: worldMapFileURL)
+        }
+    }
+
+    // CHANGE 8: Helper method to notify Flutter about errors
+    private func notifyFlutterError(code: String, message: String) {
+        if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
+            let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
+            channel.invokeMethod("onErrorDetection", arguments: ["errorCode": code, "errorMessage": message])
+        }
+    }
 
     public func captureView(shouldPresent roomDataForProcessing: CapturedRoomData, error: Error?) -> Bool {
         return true
@@ -204,10 +310,7 @@ import ARKit
     public func captureView(didPresent processedResult: CapturedRoom, error: Error?) {
         if let error = error {
             // Notify Flutter about room processing error
-            if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
-                let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
-                channel.invokeMethod("onErrorDetection", arguments: ["errorCode": "ROOM_PROCESSING_FAILED", "errorMessage": "Failed to process room data: \(error.localizedDescription)"])
-            }
+            notifyFlutterError(code: "ROOM_PROCESSING_FAILED", message: "Failed to process room data: \(error.localizedDescription)")
             return
         }
         
@@ -215,13 +318,13 @@ import ARKit
         capturedRoomArray.append(processedResult)
         finishButton.isEnabled = true
         
-        // Only enable add More Rooms button on iOS 17.0+ with multi-room mode
+        // CHANGE 9: Update room tracking for multi-room mode
         if #available(iOS 17.0, *), isMultiRoomModeEnabled {
+            print("Completed room scan - total rooms: \(capturedRoomArray.count)")
             addMoreRooms.isEnabled = true
         }
         
         // activityIndicator.stopAnimating()
-        
     }
 
     @objc private func doneScanning() {
@@ -230,7 +333,10 @@ import ARKit
     }
 
     @objc private func cancelScanning() {
-          self.dismiss(animated: true)
+        // CHANGE 10: Reset multi-room state on cancel
+        resetMultiRoomState()
+        
+        self.dismiss(animated: true)
 
         // Notify Flutter that user wants to scan another room
         if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
@@ -239,8 +345,20 @@ import ARKit
         }
     }
 
+    // CHANGE 10: Reset multi-room state and clear persistent storage
+    private func resetMultiRoomState() {
+        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
+            savedWorldMap = nil
+            capturedRoomArray.removeAll()
+            // Reset configuration to clear any saved world map
+            roomCaptureSessionConfig = RoomCaptureSession.Configuration()
+            // Remove saved ARWorldMap file
+            try? FileManager.default.removeItem(at: worldMapFileURL)
+            print("Multi-room state reset - ARWorldMap cleared from memory and disk")
+        }
+    }
 
-      private func exportToJSON() async -> Bool {
+    private func exportToJSON() async -> Bool {
         guard let currentCapturedRoom = currentCapturedRoom else { 
             print("No captured room data to export")
             return false 
@@ -280,7 +398,6 @@ import ARKit
             return false
         }
     }
-
 
     private func exportToUSDZ() async -> Bool {
         guard let currentCapturedRoom = currentCapturedRoom else {
@@ -349,7 +466,6 @@ import ARKit
         }
     }
 
-
     @objc private func finishAndReturnResult() {
         guard let currentCapturedRoom = currentCapturedRoom else {
             self.dismiss(animated: true)
@@ -364,14 +480,14 @@ import ARKit
             addMoreRooms.isEnabled = false
         }
 
-    Task {
-        do {
-            // Export both files and wait for completion
-            let usdzSuccess = await exportToUSDZ()
-            let jsonSuccess = await exportToJSON()
-            
-            // Only call Flutter after both exports succeed
-            await MainActor.run {
+        Task {
+            do {
+                // Export both files and wait for completion
+                let usdzSuccess = await exportToUSDZ()
+                let jsonSuccess = await exportToJSON()
+                
+                // Only call Flutter after both exports succeed
+                await MainActor.run {
                     // self.activityIndicator.stopAnimating()
                     
                     if usdzSuccess && jsonSuccess {
@@ -381,53 +497,51 @@ import ARKit
                             channel.invokeMethod("onRoomCaptureFinished", arguments: nil)
                         }
                         print("Export completed successfully")
+                        
+                        // CHANGE 12: Reset multi-room state after successful completion
+                        self.resetMultiRoomState()
                     } else {
                         // One or both exports failed
                         print("Export failed - USDZ: \(usdzSuccess), JSON: \(jsonSuccess)")
                         
                         // Notify Flutter about export failure
-                        if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
-                            let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
-                            let errorCode = !usdzSuccess && !jsonSuccess ? "EXPORT_FAILED" : (!usdzSuccess ? "USDZ_EXPORT_FAILED" : "JSON_EXPORT_FAILED")
-                            let errorMessage = !usdzSuccess && !jsonSuccess ? "Both USDZ and JSON export failed" : (!usdzSuccess ? "USDZ file export failed" : "JSON file export failed")
-                            channel.invokeMethod("onErrorDetection", arguments: ["errorCode": errorCode, "errorMessage": errorMessage])
-                        }
+                        let errorCode = !usdzSuccess && !jsonSuccess ? "EXPORT_FAILED" : (!usdzSuccess ? "USDZ_EXPORT_FAILED" : "JSON_EXPORT_FAILED")
+                        let errorMessage = !usdzSuccess && !jsonSuccess ? "Both USDZ and JSON export failed" : (!usdzSuccess ? "USDZ file export failed" : "JSON file export failed")
+                        self.notifyFlutterError(code: errorCode, message: errorMessage)
                     }
                     
                     self.dismiss(animated: true)
                 }
-        } catch {
-            await MainActor.run {
-                self.activityIndicator.stopAnimating()
-                finishButton.isEnabled = true
-                if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-                    addMoreRooms.isEnabled = true
+            } catch {
+                await MainActor.run {
+                    self.activityIndicator.stopAnimating()
+                    finishButton.isEnabled = true
+                    if #available(iOS 17.0, *), isMultiRoomModeEnabled {
+                        addMoreRooms.isEnabled = true
+                    }
+                    print("Export failed: \(error)")
+                    
+                    // Notify Flutter about unexpected export error
+                    self.notifyFlutterError(code: "EXPORT_EXCEPTION", message: "Unexpected error during export: \(error.localizedDescription)")
+                    
+                    self.dismiss(animated: true)
                 }
-                print("Export failed: \(error)")
-                
-                // Notify Flutter about unexpected export error
-                if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
-                    let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
-                    channel.invokeMethod("onErrorDetection", arguments: ["errorCode": "EXPORT_EXCEPTION", "errorMessage": "Unexpected error during export: \(error.localizedDescription)"])
-                }
-                
-                self.dismiss(animated: true)
             }
         }
     }
-  }
 
-    // ADDED: New method to handle scanning additional rooms in multi-room mode (iOS 17.0+ only)
+    // CHANGE 13: Dismiss and let user restart session for additional rooms
     @objc private func addMoreRoomsToMerge() {
         // This method should only be called on iOS 17.0+ with multi-room mode
         guard #available(iOS 17.0, *), isMultiRoomModeEnabled else {
+            print("Multi-room mode not available")
             return
         }
         
         // Reset the current room scanning state
         currentCapturedRoom = nil
         
-        // Hide the buttons and start a new scanning session
+        // Hide the buttons and dismiss
         finishButton.isEnabled = false
         addMoreRooms.isEnabled = false
         
@@ -435,19 +549,16 @@ import ARKit
             self.finishButton.alpha = 0.0
             self.addMoreRooms.alpha = 0.0
         } completion: { _ in
-            self.finishButton.isHidden = true
-            self.addMoreRooms.isHidden = true
-            self.view.isHidden = true
-
-            // Notify Flutter that user wants to scan another room
+            // CHANGE 14: Dismiss and let user restart - ARWorldMap will be detected automatically
+            self.dismiss(animated: true)
+            
+            // Notify Flutter that user wants to add more rooms
             if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
                 let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
-                channel.invokeMethod("onaddMoreRoomsRequested", arguments: nil)
+                channel.invokeMethod("onaddMoreRoomsRequested", arguments: ["totalRooms": self.capturedRoomArray.count, "hasPersistedWorldMap": true])
             }
-            
         }
     }
-
 
     private func cleanupOldScanFiles(keepLastCount: Int = 10) {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -485,5 +596,4 @@ import ARKit
             print("Failed to cleanup old scan files: \(error)")
         }
     }
-
 }
