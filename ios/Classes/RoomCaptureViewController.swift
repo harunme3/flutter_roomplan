@@ -350,7 +350,7 @@ import ARKit
                 roomCaptureView.captureSession.stop()
             }
         }
-        resetMultiRoomState()
+        // resetMultiRoomState()
         
         self.dismiss(animated: true)
 
