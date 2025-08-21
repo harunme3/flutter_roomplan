@@ -14,7 +14,7 @@ import ARKit
     // load multiple capturedRoom results to capturedRoomArray
     var capturedRoomArray: [CapturedRoom] = []
 
-    // CHANGE 1: Add ARWorldMap management for multi-room capture with persistent storage
+    // Add ARWorldMap management for multi-room capture with persistent storage
     private var savedWorldMap: ARWorldMap?
     private let worldMapFileURL: URL = {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -38,7 +38,7 @@ import ARKit
         // Clean up old files first
         cleanupOldScanFiles()
         
-        // CHANGE: Load existing ARWorldMap if available
+        // Load existing ARWorldMap if available
         loadSavedWorldMap()
     }
 
@@ -153,11 +153,11 @@ import ARKit
         stopSession()
     }
 
-    // CHANGE 2: Updated startSession with persistent ARWorldMap detection
+    // startSession with persistent ARWorldMap detection
     private func startSession() {
         isScanning = true
         
-        // CHANGE 3: Configure session based on saved ARWorldMap availability
+        //Configure session based on saved ARWorldMap availability
         if #available(iOS 17.0, *), isMultiRoomModeEnabled {
             if let worldMap = savedWorldMap {
                 // ARWorldMap exists: Load it for additional room scanning
@@ -210,16 +210,16 @@ import ARKit
         doneButton.alpha = 1.0
     }
 
-    // CHANGE 4: Updated stopSession to save ARWorldMap when needed
+    // stopSession to save ARWorldMap when needed
     private func stopSession() {
         isScanning = false
         
-        // CHANGE 5: Save ARWorldMap for future multi-room sessions (if no existing map)
+        //Save ARWorldMap for future multi-room sessions
         if #available(iOS 17.0, *), isMultiRoomModeEnabled {
             saveCurrentARWorldMap()
         }
         
-        // CHANGE 6: Always fully stop session - each room is discrete
+        // Always fully stop session - each room is discrete
         if #available(iOS 17.0, *) {
             roomCaptureView.captureSession.stop(pauseARSession: false)
         } else {
@@ -248,7 +248,7 @@ import ARKit
         }
     }
 
-    // CHANGE 7: ARWorldMap persistent storage for multi-room continuity
+    // ARWorldMap persistent storage for multi-room continuity
     @available(iOS 17.0, *)
     private func saveCurrentARWorldMap() {
         guard isMultiRoomModeEnabled else { return }
@@ -272,7 +272,7 @@ import ARKit
         }
     }
     
-    // CHANGE: Save ARWorldMap to persistent storage
+    // Save ARWorldMap to persistent storage
     private func saveWorldMapToDisk(_ worldMap: ARWorldMap) {
         do {
             let data = try NSKeyedArchiver.archivedData(withRootObject: worldMap, requiringSecureCoding: true)
@@ -284,7 +284,7 @@ import ARKit
         }
     }
     
-    // CHANGE: Load ARWorldMap from persistent storage
+    // Load ARWorldMap from persistent storage
     private func loadSavedWorldMap() {
         guard FileManager.default.fileExists(atPath: worldMapFileURL.path) else {
             print("No saved ARWorldMap found")
@@ -304,7 +304,7 @@ import ARKit
         }
     }
 
-    // CHANGE 8: Helper method to notify Flutter about errors
+    // Helper method to notify Flutter about errors
     private func notifyFlutterError(code: String, message: String) {
         if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
             let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
@@ -327,7 +327,7 @@ import ARKit
         capturedRoomArray.append(processedResult)
         finishButton.isEnabled = true
         
-        // CHANGE 9: Update room tracking for multi-room mode
+        // Update room tracking for multi-room mode
         if #available(iOS 17.0, *), isMultiRoomModeEnabled {
             print("Completed room scan - total rooms: \(capturedRoomArray.count)")
             addMoreRooms.isEnabled = true
@@ -342,19 +342,12 @@ import ARKit
     }
 
     @objc private func cancelScanning() {
-        // CHANGE 10: Reset multi-room state on cancel
+        // Reset multi-room state on cancel
         if isScanning {
             if #available(iOS 17.0, *) {
                 roomCaptureView.captureSession.stop(pauseARSession: false)
             } else {
                 roomCaptureView.captureSession.stop()
-            }
-        }
-
-        Task {
-            let success = await resetMultiRoomState()
-            if !success {
-                print("Failed to reset multi-room state")
             }
         }
         
@@ -572,7 +565,7 @@ import ARKit
         }
     }
 
-    // CHANGE 13: Dismiss and let user restart session for additional rooms
+    // Dismiss and let user restart session for additional rooms
     @objc private func addMoreRoomsToMerge() {
         // This method should only be called on iOS 17.0+ with multi-room mode
         guard #available(iOS 17.0, *), isMultiRoomModeEnabled else {
@@ -591,7 +584,7 @@ import ARKit
             self.finishButton.alpha = 0.0
             self.addMoreRooms.alpha = 0.0
         } completion: { _ in
-            // CHANGE 14: Dismiss and let user restart - ARWorldMap will be detected automatically
+            //Dismiss and let user restart - ARWorldMap will be detected automatically
             self.dismiss(animated: true)
             
             // Notify Flutter that user wants to add more rooms
