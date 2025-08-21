@@ -55,4 +55,9 @@ class FlutterRoomplan {
   Future<String?> getJsonFilePath() {
     return FlutterRoomplanPlatform.instance.getJsonFilePath();
   }
+
+  // Clear saved ARWorldMap
+  Future<bool> clearArWorldMap() {
+    return FlutterRoomplanPlatform.instance.clearArWorldMap();
+  }
 }

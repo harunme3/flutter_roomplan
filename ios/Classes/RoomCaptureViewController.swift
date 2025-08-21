@@ -631,4 +631,25 @@ import ARKit
             print("Failed to cleanup old scan files: \(error)")
         }
     }
+
+    @objc public static func clearSavedArWorldMap() -> Bool {
+        
+    let worldMapFileURL: URL = {
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        return documentsPath.appendingPathComponent("RoomScanWorldMap.dat")
+    }()
+    
+    do {
+        if FileManager.default.fileExists(atPath: worldMapFileURL.path) {
+            try FileManager.default.removeItem(at: worldMapFileURL)
+            print("Multi-room state reset - ARWorldMap cleared from memory and disk")
+        } else {
+            print("No saved ARWorldMap found on disk")
+        }
+        return true
+    } catch {
+        print("Error deleting ARWorldMap file: \(error)")
+        return false
+    }
+   }
 }

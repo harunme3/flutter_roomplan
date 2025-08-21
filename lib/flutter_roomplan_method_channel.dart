@@ -101,4 +101,12 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
     );
     return result;
   }
+
+  @override
+  Future<bool> clearArWorldMap() async {
+    final bool? result = await methodChannel.invokeMethod<bool>(
+      'clearArWorldMap',
+    );
+    return result ?? false;
+  }
 }

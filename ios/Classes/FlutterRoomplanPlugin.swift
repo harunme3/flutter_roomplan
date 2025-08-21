@@ -53,6 +53,13 @@ public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
       } else {
         result(FlutterError(code: "NO_SCAN", message: "No active room scan found", details: nil))
       }
+    case "clearArWorldMap":
+      let success = RoomCaptureViewController.clearSavedArWorldMap()
+      if success {
+        result(true)
+      } else {
+        result(false)
+      }
     default:
       result(FlutterMethodNotImplemented)
     }

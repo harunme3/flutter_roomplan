@@ -68,4 +68,8 @@ abstract class FlutterRoomplanPlatform extends PlatformInterface {
   Future<String?> getJsonFilePath() {
     throw UnimplementedError('getJsonFilePath() has not been implemented.');
   }
+
+  Future<bool> clearArWorldMap() {
+    throw UnimplementedError('clearArWorldMap() has not been implemented.');
+  }
 }
