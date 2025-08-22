@@ -20,12 +20,6 @@ import ARKit
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         return documentsPath.appendingPathComponent("RoomScanWorldMap.dat")
     }()
-
-    //Persistent storage for captured rooms
-    private let capturedRoomsFileURL: URL = {
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return documentsPath.appendingPathComponent("CapturedRooms.dat")
-    }()
     
     public  var usdzFilePath: String?
     public  var jsonFilePath: String?
@@ -44,11 +38,8 @@ import ARKit
         // Clean up old files first
         cleanupOldScanFiles()
         
-        //Load both ARWorldMap and captured rooms
+        // Load existing ARWorldMap if available
         loadSavedWorldMap()
-        loadCapturedRooms()
-
-        print("ViewDidLoad - Loaded \(capturedRoomArray.count) existing rooms")
     }
 
     @objc public static func isSupported() -> Bool {
@@ -184,7 +175,7 @@ import ARKit
             }
                 
                 // Run ARKit relocalization with reset options for proper world alignment
-                arSession.run(arWorldTrackingConfig, options: [.removeExistingAnchors])
+                arSession.run(arWorldTrackingConfig, options: [])
                 
                 // Wait briefly for relocalization, then start room capture
                 DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
@@ -226,7 +217,6 @@ import ARKit
         //Save ARWorldMap for future multi-room sessions
         if #available(iOS 17.0, *), isMultiRoomModeEnabled {
             saveCurrentARWorldMap()
-            saveCapturedRooms()
         }
         
         // Always fully stop session - each room is discrete
@@ -314,40 +304,6 @@ import ARKit
         }
     }
 
-    // Save captured rooms to persistent storage
-    private func saveCapturedRooms() {
-        guard isMultiRoomModeEnabled else { return }
-        
-        do {
-            let data = try NSKeyedArchiver.archivedData(withRootObject: capturedRoomArray, requiringSecureCoding: true)
-            try data.write(to: capturedRoomsFileURL)
-            print("Successfully saved \(capturedRoomArray.count) captured rooms to disk")
-        } catch {
-            print("Failed to save captured rooms to disk: \(error)")
-            notifyFlutterError(code: "ROOMS_SAVE_FAILED", message: "Failed to save captured rooms: \(error.localizedDescription)")
-        }
-    }
-    
-    //Load captured rooms from persistent storage
-    private func loadCapturedRooms() {
-        guard isMultiRoomModeEnabled else { return }
-        guard FileManager.default.fileExists(atPath: capturedRoomsFileURL.path) else {
-            print("No saved captured rooms found")
-            return
-        }
-        
-        do {
-            let data = try Data(contentsOf: capturedRoomsFileURL)
-            if let rooms = try NSKeyedUnarchiver.unarchivedObject(ofClasses: [NSArray.self, CapturedRoom.self], from: data) as? [CapturedRoom] {
-                capturedRoomArray = rooms
-                print("Successfully loaded \(capturedRoomArray.count) captured rooms from disk")
-            }
-        } catch {
-            print("Failed to load captured rooms from disk: \(error)")
-            try? FileManager.default.removeItem(at: capturedRoomsFileURL)
-        }
-    }
-
     // Helper method to notify Flutter about errors
     private func notifyFlutterError(code: String, message: String) {
         if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
@@ -375,10 +331,8 @@ import ARKit
         if #available(iOS 17.0, *), isMultiRoomModeEnabled {
             print("Completed room scan - total rooms: \(capturedRoomArray.count)")
             addMoreRooms.isEnabled = true
-            // Save rooms immediately after capture
-            saveCapturedRooms()
         }
-        print("Room \(capturedRoomArray.count) captured successfully!")
+        
         // activityIndicator.stopAnimating()
     }
 
@@ -424,14 +378,6 @@ import ARKit
             } else {
                 print("No saved ARWorldMap found on disk")
             }
-
-            if FileManager.default.fileExists(atPath: capturedRoomsFileURL.path) {
-                try FileManager.default.removeItem(at: capturedRoomsFileURL)
-                print("Multi-room state reset - captured rooms cleared from memory and disk")
-            } else {
-                print("No saved captured rooms found on disk")
-            }
-
             return true
         } catch {
             print("Error deleting ARWorldMap file: \(error)")
@@ -700,14 +646,6 @@ import ARKit
         } else {
             print("No saved ARWorldMap found on disk")
         }
-
-        if FileManager.default.fileExists(atPath: capturedRoomsFileURL.path) {
-            try FileManager.default.removeItem(at: capturedRoomsFileURL)
-            print("Multi-room state reset - captured rooms cleared from memory and disk")
-        } else {
-            print("No saved captured rooms found on disk")
-        }
-        
         return true
     } catch {
         print("Error deleting ARWorldMap file: \(error)")
