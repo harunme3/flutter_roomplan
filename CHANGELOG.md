@@ -1,8 +1,9 @@
-## 1.0.5
+## 1.0.6
 
 - Bug Fixes
+- Optimized Scan Files
 
-## 1.0.4
+## 1.0.5
 
 - Added Object Detection Support
     
