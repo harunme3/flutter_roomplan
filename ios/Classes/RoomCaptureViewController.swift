@@ -426,7 +426,7 @@ import ARKit
 
 
 
-      private func cleanupOldScanFiles(keepLastCount: Int = 10) {
+      private func cleanupOldScanFiles(keepLastCount: Int = 2) {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
         

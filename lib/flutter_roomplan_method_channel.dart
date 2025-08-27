@@ -43,7 +43,9 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
 
   @override
   Future<bool> isMultiRoomSupported() async {
-    final bool? result = await methodChannel.invokeMethod<bool>('isMultiRoomSupported');
+    final bool? result = await methodChannel.invokeMethod<bool>(
+      'isMultiRoomSupported',
+    );
     return result ?? false;
   }
 
