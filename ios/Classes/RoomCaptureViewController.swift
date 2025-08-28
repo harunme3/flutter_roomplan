@@ -2,6 +2,7 @@ import UIKit
 import RoomPlan
 import Flutter
 import ARKit
+import AVFoundation
 
 @objc public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegate, RoomCaptureSessionDelegate {
 
@@ -15,8 +16,8 @@ import ARKit
     var capturedRoomArray: [CapturedRoom] = []
 
     
-    public  var usdzFilePath: String?
-    public  var jsonFilePath: String?
+    public var usdzFilePath: String?
+    public var jsonFilePath: String?
 
     private let finishButton = UIButton(type: .system)
     private let scanOtherRoomsButton = UIButton(type: .system)
@@ -24,14 +25,213 @@ import ARKit
     private let cancelButton = UIButton(type: .system)
     private let doneButton = UIButton(type: .system)
 
+    // Error handling properties
+    private var sessionStartTime: Date?
+    private let sessionTimeoutInterval: TimeInterval = 300 // 5 minutes
+
     public override func viewDidLoad() {
         super.viewDidLoad()
+        
+        // Check device compatibility first
+        if !performDeviceCompatibilityCheck() {
+            return // Error already handled in the method
+        }
+        
         resetScanningSession()
         setupUI()
         setupRoomCaptureView()
         activityIndicator.stopAnimating()
         // Clean up old files first
         cleanupOldScanFiles()
+        
+        // Monitor memory and thermal state
+        startSystemMonitoring()
+    }
+
+    // MARK: - Device Compatibility & Permission Checks
+    
+    private func performDeviceCompatibilityCheck() -> Bool {
+        // Check iOS version
+        if #unavailable(iOS 16.0) {
+            handleError(.unsupportedVersion)
+            return false
+        }
+        
+        // Check RoomPlan support
+        guard RoomCaptureSession.isSupported else {
+            handleError(.roomPlanNotSupported)
+            return false
+        }
+        
+        // Check ARKit support
+        guard ARWorldTrackingConfiguration.isSupported else {
+            handleError(.arKitNotSupported)
+            return false
+        }
+        
+        // Check hardware capabilities
+        if !checkHardwareCapabilities() {
+            handleError(.insufficientHardware)
+            return false
+        }
+        
+        // Check system state
+        if !checkSystemState() {
+            return false // Error already handled in checkSystemState
+        }
+        
+        // Check camera permissions
+        checkCameraPermissions()
+        
+        return true
+    }
+    
+    private func checkHardwareCapabilities() -> Bool {
+        let supportsSceneReconstruction = ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh)
+        let deviceModel = getDeviceModel()
+        
+        // Check for LiDAR or advanced ARKit capabilities
+        return supportsSceneReconstruction || RoomCaptureSession.isSupported
+    }
+    
+    private func checkSystemState() -> Bool {
+        // Check low power mode
+        if ProcessInfo.processInfo.isLowPowerModeEnabled {
+            handleError(.lowPowerMode)
+            return false
+        }
+        
+        // Check available storage
+        if !hasEnoughStorage() {
+            handleError(.insufficientStorage)
+            return false
+        }
+        
+        // Check thermal state
+        let thermalState = ProcessInfo.processInfo.thermalState
+        if thermalState == .critical || thermalState == .serious {
+            handleError(.deviceOverheating)
+            return false
+        }
+        
+        // Check memory pressure
+        if isMemoryPressureHigh() {
+            handleError(.memoryPressure)
+            return false
+        }
+        
+        return true
+    }
+    
+    private func checkCameraPermissions() {
+        let cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
+        
+        switch cameraStatus {
+        case .denied:
+            handleError(.cameraPermissionDenied)
+        case .notDetermined:
+            // Request permission
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                DispatchQueue.main.async {
+                    if !granted {
+                        self?.handleError(.cameraPermissionDenied)
+                    }
+                }
+            }
+        case .restricted:
+            handleError(.cameraPermissionUnknown)
+        case .authorized:
+            break // All good
+        @unknown default:
+            handleError(.cameraPermissionUnknown)
+        }
+    }
+    
+    // MARK: - System State Monitoring
+    
+    private func startSystemMonitoring() {
+        // Monitor thermal state changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(thermalStateChanged),
+            name: ProcessInfo.thermalStateDidChangeNotification,
+            object: nil
+        )
+        
+        // Monitor low power mode changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(lowPowerModeChanged),
+            name: .NSProcessInfoPowerStateDidChange,
+            object: nil
+        )
+        
+        // Monitor app state changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appDidEnterBackground),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+        
+        // Monitor memory warnings
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(memoryWarningReceived),
+            name: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil
+        )
+    }
+    
+    @objc private func thermalStateChanged() {
+        let thermalState = ProcessInfo.processInfo.thermalState
+        if thermalState == .critical || thermalState == .serious {
+            if isScanning {
+                stopSession()
+            }
+            handleError(.deviceOverheating)
+        }
+    }
+    
+    @objc private func lowPowerModeChanged() {
+        if ProcessInfo.processInfo.isLowPowerModeEnabled && isScanning {
+            stopSession()
+            handleError(.lowPowerMode)
+        }
+    }
+    
+    @objc private func appDidEnterBackground() {
+        if isScanning {
+            handleError(.backgroundModeActive)
+        }
+    }
+    
+    @objc private func memoryWarningReceived() {
+        if isScanning {
+            stopSession()
+            handleError(.memoryPressure)
+        }
+    }
+    
+    // MARK: - Storage and Memory Utilities
+    
+    private func hasEnoughStorage(requiredMB: Int64 = 100) -> Bool {
+        do {
+            let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let values = try documentDirectory.resourceValues(forKeys: [.volumeAvailableCapacityKey])
+            let availableBytes = values.volumeAvailableCapacity ?? 0
+            let availableMB = Int64(availableBytes) / (1024 * 1024)
+            return availableMB >= requiredMB
+        } catch {
+            return false
+        }
+    }
+    
+    private func isMemoryPressureHigh() -> Bool {
+        // This is a simplified check - in a real app you might want more sophisticated memory monitoring
+        let physicalMemory = ProcessInfo.processInfo.physicalMemory
+        let usedMemory = mach_task_basic_info()
+        return physicalMemory < 2 * 1024 * 1024 * 1024 // Less than 2GB total is considered low
     }
 
     @objc public static func isSupported() -> Bool {
@@ -41,7 +241,41 @@ import ARKit
         return false
     }
 
-    // Replace the existing button configuration in setupUI() method
+    // MARK: - Error Handling
+    
+    private func handleError(_ error: RoomPlanError) {
+        print("RoomPlan Error: \(error.message)")
+        if let details = error.details {
+            print("Details: \(details)")
+        }
+        
+        notifyFlutterError(code: error.code, message: error.message, details: error.details, recoverySuggestion: error.recoverySuggestion)
+    }
+    
+    // Enhanced Flutter error notification
+    private func notifyFlutterError(code: String, message: String, details: String? = nil, recoverySuggestion: String? = nil) {
+        if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
+            let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
+            
+            var arguments: [String: Any] = [
+                "errorCode": code,
+                "errorMessage": message
+            ]
+            
+            if let details = details {
+                arguments["errorDetails"] = details
+            }
+            
+            if let recoverySuggestion = recoverySuggestion {
+                arguments["recoverySuggestion"] = recoverySuggestion
+            }
+            
+            channel.invokeMethod("onErrorDetection", arguments: arguments)
+        }
+    }
+
+    // MARK: - UI Setup (keeping your existing UI setup)
+    
     private func setupUI() {
         view.backgroundColor = .white
 
@@ -145,55 +379,144 @@ import ARKit
         stopSession()
     }
 
+    // MARK: - Session Management with Error Handling
+    
     private func startSession() {
-
-        isScanning = true
-        roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
+        // Check if another session is already running
+        guard !isScanning else {
+            handleError(.sessionInProgress)
+            return
+        }
         
-        // Hide Finish button
-        finishButton.isHidden = true
-        finishButton.alpha = 0.0
-
-        // Hide scan other rooms button (only relevant for iOS 17.0+ with multi-room)
-        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-            scanOtherRoomsButton.isHidden = true
-            scanOtherRoomsButton.alpha = 0.0
+        // Re-check system state before starting
+        guard checkSystemState() else {
+            return // Error already handled
+        }
+        
+        // Check camera permissions again
+        let cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
+        guard cameraStatus == .authorized else {
+            switch cameraStatus {
+            case .denied:
+                handleError(.cameraPermissionDenied)
+            case .notDetermined:
+                handleError(.cameraPermissionNotDetermined)
+            default:
+                handleError(.cameraPermissionUnknown)
+            }
+            return
         }
 
-        // Show Done button again (in case it was hidden before)
-        doneButton.isHidden = false
-        doneButton.alpha = 1.0
+        do {
+            isScanning = true
+            sessionStartTime = Date()
+            
+            roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
+            
+            // Start session timeout timer
+            startSessionTimeoutTimer()
+            
+            // Hide Finish button
+            finishButton.isHidden = true
+            finishButton.alpha = 0.0
+
+            // Hide scan other rooms button (only relevant for iOS 17.0+ with multi-room)
+            if #available(iOS 17.0, *), isMultiRoomModeEnabled {
+                scanOtherRoomsButton.isHidden = true
+                scanOtherRoomsButton.alpha = 0.0
+            }
+
+            // Show Done button again (in case it was hidden before)
+            doneButton.isHidden = false
+            doneButton.alpha = 1.0
+            
+        } catch {
+            isScanning = false
+            handleError(.worldTrackingFailed)
+        }
+    }
+    
+    private func startSessionTimeoutTimer() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + sessionTimeoutInterval) { [weak self] in
+            guard let self = self, self.isScanning else { return }
+            
+            if let startTime = self.sessionStartTime,
+               Date().timeIntervalSince(startTime) >= self.sessionTimeoutInterval {
+                self.stopSession()
+                self.handleError(.timeout("Room scanning session"))
+            }
+        }
     }
 
     private func stopSession() {
-        isScanning = false
+        guard isScanning else {
+            handleError(.sessionNotRunning)
+            return
+        }
         
-        // Use appropriate stop method based on iOS version
-        if #available(iOS 17.0, *) {
-            roomCaptureView.captureSession.stop(pauseARSession: !isMultiRoomModeEnabled)
-        } else {
-            roomCaptureView.captureSession.stop()
-        }
-
-        // Show Finish button
-        finishButton.isHidden = false
-        UIView.animate(withDuration: 0.3) {
-            self.finishButton.alpha = 1.0
-        }
-
-        // Show scan other rooms button only for iOS 17.0+ with multi-room enabled
-        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-            scanOtherRoomsButton.isHidden = false
-            UIView.animate(withDuration: 0.3) {
-                self.scanOtherRoomsButton.alpha = 1.0
+        isScanning = false
+        sessionStartTime = nil
+        
+        do {
+            // Use appropriate stop method based on iOS version
+            if #available(iOS 17.0, *) {
+                roomCaptureView.captureSession.stop(pauseARSession: !isMultiRoomModeEnabled)
+            } else {
+                roomCaptureView.captureSession.stop()
             }
-        }
 
-        // Hide Done button
-        UIView.animate(withDuration: 0.3) {
-            self.doneButton.alpha = 0.0
-        } completion: { _ in
-            self.doneButton.isHidden = true
+            // Show Finish button
+            finishButton.isHidden = false
+            UIView.animate(withDuration: 0.3) {
+                self.finishButton.alpha = 1.0
+            }
+
+            // Show scan other rooms button only for iOS 17.0+ with multi-room enabled
+            if #available(iOS 17.0, *), isMultiRoomModeEnabled {
+                scanOtherRoomsButton.isHidden = false
+                UIView.animate(withDuration: 0.3) {
+                    self.scanOtherRoomsButton.alpha = 1.0
+                }
+            }
+
+            // Hide Done button
+            UIView.animate(withDuration: 0.3) {
+                self.doneButton.alpha = 0.0
+            } completion: { _ in
+                self.doneButton.isHidden = true
+            }
+            
+        } catch {
+            // If stopping fails, still update the UI state
+            isScanning = false
+            print("Warning: Failed to stop session cleanly: \(error)")
+        }
+    }
+
+    // MARK: - RoomCaptureSessionDelegate
+    
+    public func captureSession(_ session: RoomCaptureSession, didFailWithError error: Error) {
+        print("RoomCaptureSession failed with error: \(error)")
+        
+        // Map various ARKit and RoomPlan errors to our custom errors
+        if let arError = error as? ARError {
+            switch arError.code {
+            case .worldTrackingFailed:
+                handleError(.worldTrackingFailed)
+            case .insufficientFeatures:
+                handleError(.worldTrackingFailed)
+            case .cameraUnauthorized:
+                handleError(.cameraPermissionDenied)
+            default:
+                handleError(.processingFailed(arError.localizedDescription))
+            }
+        } else {
+            handleError(.processingFailed(error.localizedDescription))
+        }
+        
+        // Stop the session on error
+        if isScanning {
+            stopSession()
         }
     }
 
@@ -202,6 +525,11 @@ import ARKit
         // This method should only be called on iOS 17.0+ with multi-room mode
         guard #available(iOS 17.0, *), isMultiRoomModeEnabled else {
             return
+        }
+        
+        // Check system state before starting new scan
+        guard checkSystemState() else {
+            return // Error already handled
         }
         
         // Reset the current room scanning state
@@ -222,10 +550,19 @@ import ARKit
     }
 
     public func captureView(shouldPresent roomDataForProcessing: CapturedRoomData, error: Error?) -> Bool {
+        if let error = error {
+            handleError(.dataCorrupted(error.localizedDescription))
+            return false
+        }
         return true
     }
 
     public func captureView(didPresent processedResult: CapturedRoom, error: Error?) {
+        if let error = error {
+            handleError(.processingFailed(error.localizedDescription))
+            return
+        }
+        
         currentCapturedRoom = processedResult
         capturedRoomArray.append(processedResult)
         finishButton.isEnabled = true
@@ -236,7 +573,6 @@ import ARKit
         }
         
         activityIndicator.stopAnimating()
-        
     }
 
     @objc private func doneScanning() {
@@ -256,14 +592,25 @@ import ARKit
     }
 
     @objc private func cancelScanning() {
+        if isScanning {
+            stopSession()
+        }
         self.dismiss(animated: true)
     }
 
+    // MARK: - Export Functions with Error Handling
 
-      private func exportToJSON() async -> Bool {
+    private func exportToJSON() async -> Bool {
         guard let currentCapturedRoom = currentCapturedRoom else { 
             print("No captured room data to export")
+            handleError(.dataCorrupted("No room data available for export"))
             return false 
+        }
+        
+        // Check storage before export
+        if !hasEnoughStorage(requiredMB: 50) {
+            handleError(.insufficientStorage)
+            return false
         }
         
         do {
@@ -297,14 +644,21 @@ import ARKit
             
         } catch {
             print("Failed to export JSON file: \(error)")
+            handleError(.exportFailed("JSON export failed: \(error.localizedDescription)"))
             return false
         }
     }
 
-
     private func exportToUSDZ() async -> Bool {
         guard let currentCapturedRoom = currentCapturedRoom else {
             print("No captured room data to export")
+            handleError(.dataCorrupted("No room data available for export"))
+            return false
+        }
+        
+        // Check storage before export
+        if !hasEnoughStorage(requiredMB: 100) {
+            handleError(.insufficientStorage)
             return false
         }
 
@@ -338,6 +692,7 @@ import ARKit
                 
             } catch {
                 print("Failed to export USDZ file: \(error)")
+                handleError(.exportFailed("USDZ export failed: \(error.localizedDescription)"))
                 return false
             }
         } else if #available(iOS 16.0, *) {
@@ -361,17 +716,19 @@ import ARKit
                 
             } catch {
                 print("Failed to export USDZ file: \(error)")
+                handleError(.exportFailed("USDZ export failed: \(error.localizedDescription)"))
                 return false
             }
         } else {
             print("USDZ export is only supported on iOS 16.0 or newer")
+            handleError(.unsupportedVersion)
             return false
         }
     }
 
-
     @objc private func finishAndReturnResult() {
         guard let currentCapturedRoom = currentCapturedRoom else {
+            handleError(.dataCorrupted("No room scan data available"))
             self.dismiss(animated: true)
             return
         }
@@ -384,14 +741,14 @@ import ARKit
             scanOtherRoomsButton.isEnabled = false
         }
 
-    Task {
-        do {
-            // Export both files and wait for completion
-            let usdzSuccess = await exportToUSDZ()
-            let jsonSuccess = await exportToJSON()
-            
-            // Only call Flutter after both exports succeed
-            await MainActor.run {
+        Task {
+            do {
+                // Export both files and wait for completion
+                let usdzSuccess = await exportToUSDZ()
+                let jsonSuccess = await exportToJSON()
+                
+                // Only call Flutter after both exports succeed
+                await MainActor.run {
                     self.activityIndicator.stopAnimating()
                     
                     if usdzSuccess && jsonSuccess {
@@ -402,31 +759,29 @@ import ARKit
                         }
                         print("Export completed successfully")
                     } else {
-                        // One or both exports failed
+                        // One or both exports failed - errors already handled in export methods
                         print("Export failed - USDZ: \(usdzSuccess), JSON: \(jsonSuccess)")
-                        // You might want to show an alert to the user here
                     }
                     
                     self.dismiss(animated: true)
                 }
-        } catch {
-            await MainActor.run {
-                self.activityIndicator.stopAnimating()
-                finishButton.isEnabled = true
-                if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-                    scanOtherRoomsButton.isEnabled = true
+            } catch {
+                await MainActor.run {
+                    self.activityIndicator.stopAnimating()
+                    self.finishButton.isEnabled = true
+                    if #available(iOS 17.0, *), self.isMultiRoomModeEnabled {
+                        self.scanOtherRoomsButton.isEnabled = true
+                    }
+                    self.handleError(.exportFailed("Export process failed: \(error.localizedDescription)"))
+                    self.dismiss(animated: true)
                 }
-                print("Export failed: \(error)")
-                // Handle export failure
-                self.dismiss(animated: true)
             }
         }
     }
-  }
 
+    // MARK: - Utility Functions (keeping your existing ones)
 
-
-      private func cleanupOldScanFiles(keepLastCount: Int = 2) {
+    private func cleanupOldScanFiles(keepLastCount: Int = 2) {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
         
@@ -460,6 +815,7 @@ import ARKit
             }
         } catch {
             print("Failed to cleanup old scan files: \(error)")
+            // Don't throw an error to Flutter for cleanup failures - just log it
         }
     }
 
@@ -468,5 +824,71 @@ import ARKit
         currentCapturedRoom = nil
         usdzFilePath = nil
         jsonFilePath = nil
+        isScanning = false
+        sessionStartTime = nil
+    }
+    
+    // MARK: - Memory Management
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        
+        if isScanning {
+            stopSession()
+        }
+    }
+}
+
+// MARK: - Helper Functions (from your RoomPlanError file)
+
+private func getDeviceModel() -> String {
+    var systemInfo = utsname()
+    uname(&systemInfo)
+    return withUnsafePointer(to: &systemInfo.machine) {
+        $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+            String(cString: $0)
+        }
+    }
+}
+
+private func getAvailableStorageString() -> String {
+    do {
+        let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let values = try documentDirectory.resourceValues(forKeys: [.volumeAvailableCapacityKey])
+        let bytes = values.volumeAvailableCapacity ?? 0
+        return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
+    } catch {
+        return "Unknown"
+    }
+}
+
+private func getAvailableMemoryString() -> String {
+    let physicalMemory = ProcessInfo.processInfo.physicalMemory
+    return ByteCountFormatter.string(fromByteCount: Int64(physicalMemory), countStyle: .memory)
+}
+
+// MARK: - Extensions for debugging
+
+extension AVAuthorizationStatus {
+    var debugDescription: String {
+        switch self {
+        case .authorized: return "authorized"
+        case .denied: return "denied"
+        case .notDetermined: return "notDetermined"
+        case .restricted: return "restricted"
+        @unknown default: return "unknown"
+        }
+    }
+}
+
+extension ProcessInfo.ThermalState {
+    var debugDescription: String {
+        switch self {
+        case .nominal: return "nominal"
+        case .fair: return "fair"
+        case .serious: return "serious"
+        case .critical: return "critical"
+        @unknown default: return "unknown"
+        }
     }
 }
