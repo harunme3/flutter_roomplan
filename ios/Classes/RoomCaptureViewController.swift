@@ -293,9 +293,16 @@ extension ProcessInfo.ThermalState {
         notifyFlutterError(code: error.code, message: error.message, details: error.details, recoverySuggestion: error.recoverySuggestion)
     }
 
-    // Enhanced Flutter error notification
+
+    // Enhanced Flutter error notification - Thread-safe version
     private func notifyFlutterError(code: String, message: String, details: String? = nil, recoverySuggestion: String? = nil) {
-        if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
+        // Ensure we're on the main thread when calling Flutter
+        DispatchQueue.main.async {
+            guard let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController else {
+                print("Failed to get FlutterViewController for error notification")
+                return
+            }
+            
             let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
             
             var arguments: [String: Any] = [
@@ -312,8 +319,8 @@ extension ProcessInfo.ThermalState {
             }
             
             channel.invokeMethod("onErrorDetection", arguments: arguments)
+            }
         }
-    }
 
     private func performDeviceCompatibilityCheck() {
         do {
@@ -321,12 +328,16 @@ extension ProcessInfo.ThermalState {
             // If checks pass, continue with scanning
         } catch let error as RoomPlanError {
             print("Device compatibility check failed with error: \(error)")
-            handleError(error)
+            DispatchQueue.main.async {
+                self.handleError(error)
+            }    
             return
         } catch {
             print("An unexpected error occurred: \(error)")
             let roomPlanError = classifyError(error)
-            handleError(roomPlanError)
+            DispatchQueue.main.async {
+                self.handleError(roomPlanError)
+            }    
             return
         }
     }
@@ -671,7 +682,15 @@ extension ProcessInfo.ThermalState {
         if let error = error {
         print("Capture session ended with error: \(error)")
         let roomPlanError = classifyError(error)
-        handleError(roomPlanError)
+        DispatchQueue.main.async {
+            self.handleError(roomPlanError)
+        }    
+        if isScanning {
+            stopSession()
+            self.dismiss(animated: true)
+        }else{
+            self.dismiss(animated: true)
+        }
         } else {
             print("Capture session ended successfully")
         }
@@ -680,7 +699,9 @@ extension ProcessInfo.ThermalState {
     public func captureSession(_ session: RoomCaptureSession, didFailWith error: Error) {
       print("Capture session failed with error: \(error)")
       let roomPlanError = classifyError(error)
-      handleError(roomPlanError)
+      DispatchQueue.main.async {
+            self.handleError(roomPlanError)
+        }    
     }
  // MARK: - RoomCaptureSessionDelegate
 
