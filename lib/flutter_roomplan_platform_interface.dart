@@ -2,6 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'flutter_roomplan_method_channel.dart';
 
+typedef FlutterRoomplanErrorHandler =
+    void Function(
+      String code,
+      String message,
+      String? details,
+      String? recoverySuggestion,
+    );
+
 abstract class FlutterRoomplanPlatform extends PlatformInterface {
   /// Constructs a FlutterRoomplanPlatform.
   FlutterRoomplanPlatform() : super(token: _token);
@@ -33,12 +41,18 @@ abstract class FlutterRoomplanPlatform extends PlatformInterface {
     );
   }
 
+  void onErrorDetection(FlutterRoomplanErrorHandler handler) {
+    throw UnimplementedError('onErrorDetection() has not been implemented.');
+  }
+
   Future<bool> isSupported() {
     throw UnimplementedError('isSupported() has not been implemented.');
   }
 
   Future<bool> isMultiRoomSupported() {
-    throw UnimplementedError('isMultiRoomSupported() has not been implemented.');
+    throw UnimplementedError(
+      'isMultiRoomSupported() has not been implemented.',
+    );
   }
 
   Future<String?> getUsdzFilePath() {

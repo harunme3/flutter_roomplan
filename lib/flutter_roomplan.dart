@@ -3,11 +3,17 @@ import 'flutter_roomplan_platform_interface.dart';
 
 class FlutterRoomplan {
   Future<void> startScan({bool enableMultiRoom = false}) {
-    return FlutterRoomplanPlatform.instance.startScan(enableMultiRoom: enableMultiRoom);
+    return FlutterRoomplanPlatform.instance.startScan(
+      enableMultiRoom: enableMultiRoom,
+    );
   }
 
   void onRoomCaptureFinished(VoidCallback handler) {
     FlutterRoomplanPlatform.instance.onRoomCaptureFinished(handler);
+  }
+
+  void onErrorDetection(FlutterRoomplanErrorHandler handler) {
+    FlutterRoomplanPlatform.instance.onErrorDetection(handler);
   }
 
   Future<bool> isSupported() {

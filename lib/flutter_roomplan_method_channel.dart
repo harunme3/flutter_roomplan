@@ -9,6 +9,7 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   final methodChannel = const MethodChannel('rkg/flutter_roomplan');
 
   VoidCallback? _captureFinishedHandler;
+  FlutterRoomplanErrorHandler? _errorHandler;
   bool _isHandlerSetup = false;
 
   void _setupMethodCallHandler() {
@@ -16,6 +17,18 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
       methodChannel.setMethodCallHandler((call) async {
         if (call.method == 'onRoomCaptureFinished') {
           _captureFinishedHandler?.call();
+        }
+        if (call.method == 'onErrorDetection') {
+          final arguments = call.arguments as Map<String, dynamic>?;
+          if (arguments != null) {
+            final args = Map<String, dynamic>.from(call.arguments);
+            _errorHandler?.call(
+              args['errorCode'] as String,
+              args['errorMessage'] as String,
+              args['errorDetails'] as String?,
+              args['recoverySuggestion'] as String?,
+            );
+          }
         }
       });
       _isHandlerSetup = true;
@@ -32,6 +45,12 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   @override
   void onRoomCaptureFinished(VoidCallback handler) {
     _captureFinishedHandler = handler;
+    _setupMethodCallHandler();
+  }
+
+  @override
+  void onErrorDetection(FlutterRoomplanErrorHandler handler) {
+    _errorHandler = handler;
     _setupMethodCallHandler();
   }
 
