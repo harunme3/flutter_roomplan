@@ -35,6 +35,10 @@ abstract class FlutterRoomplanPlatform extends PlatformInterface {
     throw UnimplementedError('startScan() has not been implemented.');
   }
 
+  Future<void> stopScan() {
+    throw UnimplementedError('stopScan() has not been implemented.');
+  }
+
   void onRoomCaptureFinished(VoidCallback handler) {
     throw UnimplementedError(
       'onRoomCaptureFinished() has not been implemented.',

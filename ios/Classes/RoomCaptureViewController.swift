@@ -242,7 +242,7 @@ extension ProcessInfo.ThermalState {
 }
 
 
-@objc public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegate, RoomCaptureSessionDelegate {
+ public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegate, RoomCaptureSessionDelegate {
 
     public var isMultiRoomModeEnabled: Bool = false
     private var isScanning = false
@@ -274,7 +274,7 @@ extension ProcessInfo.ThermalState {
         cleanupOldScanFiles()
     }
 
-    @objc public static func isSupported() -> Bool {
+    public static func isSupported() -> Bool {
         if #available(iOS 16.0, *) {
             return RoomCaptureSession.isSupported
         }

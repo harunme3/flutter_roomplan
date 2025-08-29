@@ -43,6 +43,11 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
   }
 
   @override
+  Future<void> stopScan() async {
+    await methodChannel.invokeMethod<void>('stopScan');
+  }
+
+  @override
   void onRoomCaptureFinished(VoidCallback handler) {
     _captureFinishedHandler = handler;
     _setupMethodCallHandler();

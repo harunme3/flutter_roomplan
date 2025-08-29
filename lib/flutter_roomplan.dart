@@ -8,6 +8,10 @@ class FlutterRoomplan {
     );
   }
 
+  Future<void> stopScan() {
+    return FlutterRoomplanPlatform.instance.stopScan();
+  }
+
   void onRoomCaptureFinished(VoidCallback handler) {
     FlutterRoomplanPlatform.instance.onRoomCaptureFinished(handler);
   }
