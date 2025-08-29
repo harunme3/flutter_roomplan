@@ -881,13 +881,15 @@ extension ProcessInfo.ThermalState {
                             channel.invokeMethod("onRoomCaptureFinished", arguments: nil)
                         }
                         print("Export completed successfully")
+                        self.dismiss(animated: true)
                     } else {
                         // One or both exports failed
                         print("Export failed - USDZ: \(usdzSuccess), JSON: \(jsonSuccess)")
+                        cancelScanning()
                         // You might want to show an alert to the user here
                     }
                     
-                    cancelScanning()
+                    
                 }
         } catch {
             await MainActor.run {
