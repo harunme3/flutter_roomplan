@@ -684,7 +684,8 @@ extension ProcessInfo.ThermalState {
         if let error = error {
         print("Capture session ended with error: \(error)")
         let roomPlanError = classifyError(error)
-        handleError(roomPlanError) 
+        handleError(roomPlanError)
+        cancelScanning()
         } else {
             print("Capture session ended successfully")
         }
