@@ -702,14 +702,7 @@ extension ProcessInfo.ThermalState {
             stopSession()
         } else {
             cancelScanning()
-        }
-        finishButton.isEnabled = false
-        
-        // Only disable scan other rooms button on iOS 17.0+ with multi-room mode
-        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-            scanOtherRoomsButton.isEnabled = false
-        }
-        
+        }        
         activityIndicator.startAnimating()
     }
 
