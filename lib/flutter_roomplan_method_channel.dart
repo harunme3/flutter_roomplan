@@ -17,18 +17,45 @@ class MethodChannelFlutterRoomplan extends FlutterRoomplanPlatform {
       methodChannel.setMethodCallHandler((call) async {
         if (call.method == 'onRoomCaptureFinished') {
           _captureFinishedHandler?.call();
-        }
-        if (call.method == 'onErrorDetection') {
-          final arguments = call.arguments as Map<String, dynamic>?;
-          if (arguments != null) {
-            final args = Map<String, dynamic>.from(call.arguments);
-            _errorHandler?.call(
-              args['errorCode'] as String,
-              args['errorMessage'] as String,
-              args['errorDetails'] as String?,
-              args['recoverySuggestion'] as String?,
-            );
+        } else if (call.method == 'onErrorDetection') {
+          debugPrint('Handling onErrorDetection');
+          try {
+            final arguments = call.arguments;
+            if (arguments != null) {
+              Map<String, dynamic> args;
+              if (arguments is Map<String, dynamic>) {
+                args = arguments;
+              } else if (arguments is Map) {
+                args = Map<String, dynamic>.from(arguments);
+              } else {
+                debugPrint(
+                  'Unexpected arguments type: ${arguments.runtimeType}',
+                );
+                return;
+              }
+
+              final errorCode = args['errorCode'] as String?;
+              final errorMessage = args['errorMessage'] as String?;
+              final errorDetails = args['errorDetails'] as String?;
+              final recoverySuggestion = args['recoverySuggestion'] as String?;
+
+              debugPrint(
+                'Error details: code=$errorCode, message=$errorMessage',
+              );
+              _errorHandler?.call(
+                errorCode,
+                errorMessage,
+                errorDetails,
+                recoverySuggestion,
+              );
+            } else {
+              debugPrint('No arguments provided for onErrorDetection');
+            }
+          } on Exception catch (e) {
+            debugPrint('Error in onErrorDetection: $e');
           }
+        } else {
+          debugPrint('Unknown method call: ${call.method}');
         }
       });
       _isHandlerSetup = true;

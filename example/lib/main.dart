@@ -36,6 +36,16 @@ class _MyAppState extends State<MyApp> {
         jsonFilePath = jsonPath;
       });
     });
+    flutterRoomplan.onErrorDetection((
+      String? code,
+      String? message,
+      String? details,
+      String? recoverySuggestion,
+    ) {
+      debugPrint(
+        'Error detected: code=$code, message=$message, details=$details, recoverySuggestion=$recoverySuggestion',
+      );
+    });
   }
 
   Future<void> _checkSupport() async {

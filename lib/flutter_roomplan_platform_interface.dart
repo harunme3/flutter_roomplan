@@ -4,8 +4,8 @@ import 'flutter_roomplan_method_channel.dart';
 
 typedef FlutterRoomplanErrorHandler =
     void Function(
-      String code,
-      String message,
+      String? code,
+      String? message,
       String? details,
       String? recoverySuggestion,
     );
