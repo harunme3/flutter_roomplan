@@ -706,7 +706,7 @@ extension ProcessInfo.ThermalState {
         activityIndicator.startAnimating()
     }
 
-    public func cancelScanning() {
+   @objc public func cancelScanning() {
         print("Cancel scanning")
         if isScanning {
             if #available(iOS 17.0, *) {
