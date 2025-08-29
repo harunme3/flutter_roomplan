@@ -706,8 +706,19 @@ extension ProcessInfo.ThermalState {
         activityIndicator.startAnimating()
     }
 
-    @objc private func cancelScanning() {
-        self.dismiss(animated: true)
+    public func cancelScanning() {
+        print("Cancel scanning")
+        if isScanning {
+            if #available(iOS 17.0, *) {
+                roomCaptureView.captureSession.stop(pauseARSession: !isMultiRoomModeEnabled)
+            } else {
+                roomCaptureView.captureSession.stop()
+            }
+        }
+        resetScanningSession()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.dismiss(animated: true)
+        }
     }
 
 
@@ -841,7 +852,7 @@ extension ProcessInfo.ThermalState {
             details: "Current captured room is nil",
             recoverySuggestion: "Please complete a room scan before finishing"
             )   
-            self.dismiss(animated: true)
+            cancelScanning()
             return
         }
 
@@ -876,7 +887,7 @@ extension ProcessInfo.ThermalState {
                         // You might want to show an alert to the user here
                     }
                     
-                    self.dismiss(animated: true)
+                    cancelScanning()
                 }
         } catch {
             await MainActor.run {
@@ -887,7 +898,7 @@ extension ProcessInfo.ThermalState {
                 }
                 print("Export failed: \(error)")
                 // Handle export failure
-                self.dismiss(animated: true)
+                cancelScanning()
             }
         }
     }

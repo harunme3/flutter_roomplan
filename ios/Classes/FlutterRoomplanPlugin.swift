@@ -55,7 +55,8 @@ public class FlutterRoomplanPlugin: NSObject, FlutterPlugin {
       }
     case "stopScan":
       if let roomVC = UIApplication.shared.delegate?.window??.rootViewController?.presentedViewController as? RoomCaptureViewController {
-        roomVC.stopSession()
+        roomVC.cancelScanning()
+        result(nil)
       } else {
         result(FlutterError(code: "NO_SCAN", message: "No active room scan found", details: nil))
       }
