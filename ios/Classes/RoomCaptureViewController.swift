@@ -328,16 +328,12 @@ extension ProcessInfo.ThermalState {
             // If checks pass, continue with scanning
         } catch let error as RoomPlanError {
             print("Device compatibility check failed with error: \(error)")
-            DispatchQueue.main.async {
-                self.handleError(error)
-            }    
+            handleError(error)  
             return
         } catch {
             print("An unexpected error occurred: \(error)")
             let roomPlanError = classifyError(error)
-            DispatchQueue.main.async {
-                self.handleError(roomPlanError)
-            }    
+            handleError(error) 
             return
         }
     }
@@ -649,6 +645,12 @@ extension ProcessInfo.ThermalState {
     }
 
     public func captureView(didPresent processedResult: CapturedRoom, error: Error?) {
+        if let error = error {
+            print("Room capture error: \(error)")
+            let roomPlanError = classifyError(error)
+            handleError(roomPlanError)
+            return
+        }
         currentCapturedRoom = processedResult
         capturedRoomArray.append(processedResult)
         finishButton.isEnabled = true
@@ -682,15 +684,7 @@ extension ProcessInfo.ThermalState {
         if let error = error {
         print("Capture session ended with error: \(error)")
         let roomPlanError = classifyError(error)
-        DispatchQueue.main.async {
-            self.handleError(roomPlanError)
-        }    
-        if isScanning {
-            stopSession()
-            self.dismiss(animated: true)
-        }else{
-            self.dismiss(animated: true)
-        }
+        handleError(error) 
         } else {
             print("Capture session ended successfully")
         }
@@ -699,9 +693,7 @@ extension ProcessInfo.ThermalState {
     public func captureSession(_ session: RoomCaptureSession, didFailWith error: Error) {
       print("Capture session failed with error: \(error)")
       let roomPlanError = classifyError(error)
-      DispatchQueue.main.async {
-            self.handleError(roomPlanError)
-        }    
+      handleError(error)   
     }
  // MARK: - RoomCaptureSessionDelegate
 
