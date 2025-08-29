@@ -404,7 +404,7 @@ extension ProcessInfo.ThermalState {
     // Check for specific error patterns
     if errorDescription.contains("world tracking") || errorDescription.contains("not available") {
       return .worldTrackingFailed
-    } else if errorDescription.contains("memory") || errorDescription.contains("resources")|| errorDescription.contains("exceeded") {
+    } else if errorDescription.contains("memory") || errorDescription.contains("exceeded") {
       return .memoryPressure
     } else if errorDescription.contains("permission") || errorDescription.contains("camera") {
       return .cameraPermissionDenied
