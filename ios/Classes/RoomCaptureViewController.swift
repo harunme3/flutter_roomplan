@@ -302,7 +302,7 @@ extension ProcessInfo.ThermalState {
                 print("Failed to get FlutterViewController for error notification")
                 return
             }
-            print("FlutterViewController found for error notification")
+
             let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
             
             var arguments: [String: Any] = [
@@ -317,7 +317,7 @@ extension ProcessInfo.ThermalState {
             if let recoverySuggestion = recoverySuggestion {
                 arguments["recoverySuggestion"] = recoverySuggestion
             }
-            print("Error notification arguments: \(arguments)")
+ 
             channel.invokeMethod("onErrorDetection", arguments: arguments)
             }
         }
@@ -397,6 +397,9 @@ extension ProcessInfo.ThermalState {
    /// Classifies native errors into specific RoomPlanError types
   private func classifyError(_ error: Error) -> RoomPlanError {
     let errorDescription = error.localizedDescription.lowercased()
+
+    print("ErrorTest description: \(errorDescription)")
+    print("ErrorTest details: \(error)")
     
     // Check for specific error patterns
     if errorDescription.contains("world tracking") || errorDescription.contains("not available") {
