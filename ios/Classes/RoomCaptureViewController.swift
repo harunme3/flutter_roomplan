@@ -297,31 +297,30 @@ extension ProcessInfo.ThermalState {
     // Enhanced Flutter error notification - Thread-safe version
     private func notifyFlutterError(code: String, message: String, details: String? = nil, recoverySuggestion: String? = nil) {
         // Ensure we're on the main thread when calling Flutter
-        
-        await MainActor.run {
-           
-            if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
-              let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
-
-                var arguments: [String: Any] = [
-                    "errorCode": code,
-                    "errorMessage": message
-                ]
-                
-                if let details = details {
-                    arguments["errorDetails"] = details
-                }
-                
-                if let recoverySuggestion = recoverySuggestion {
-                    arguments["recoverySuggestion"] = recoverySuggestion
-                }
-
-               channel.invokeMethod("onRoomCaptureFinished", arguments: arguments)
+        DispatchQueue.main.async {
+            guard let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController else {
+                print("Failed to get FlutterViewController for error notification")
+                return
             }
-                
+            print("FlutterViewController found for error notification")
+            let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
+            
+            var arguments: [String: Any] = [
+                "errorCode": code,
+                "errorMessage": message
+            ]
+            
+            if let details = details {
+                arguments["errorDetails"] = details
+            }
+            
+            if let recoverySuggestion = recoverySuggestion {
+                arguments["recoverySuggestion"] = recoverySuggestion
+            }
+            print("Error notification arguments: \(arguments)")
+            channel.invokeMethod("onErrorDetection", arguments: arguments)
+            }
         }
-        
-    }
 
     private func performDeviceCompatibilityCheck() {
         do {
