@@ -333,7 +333,7 @@ extension ProcessInfo.ThermalState {
         } catch {
             print("An unexpected error occurred: \(error)")
             let roomPlanError = classifyError(error)
-            handleError(error) 
+            handleError(roomPlanError) 
             return
         }
     }
@@ -684,7 +684,7 @@ extension ProcessInfo.ThermalState {
         if let error = error {
         print("Capture session ended with error: \(error)")
         let roomPlanError = classifyError(error)
-        handleError(error) 
+        handleError(roomPlanError) 
         } else {
             print("Capture session ended successfully")
         }
@@ -693,7 +693,7 @@ extension ProcessInfo.ThermalState {
     public func captureSession(_ session: RoomCaptureSession, didFailWith error: Error) {
       print("Capture session failed with error: \(error)")
       let roomPlanError = classifyError(error)
-      handleError(error)   
+      handleError(roomPlanError)   
     }
  // MARK: - RoomCaptureSessionDelegate
 
