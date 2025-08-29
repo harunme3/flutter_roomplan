@@ -721,6 +721,12 @@ extension ProcessInfo.ThermalState {
       private func exportToJSON() async -> Bool {
         guard let currentCapturedRoom = currentCapturedRoom else { 
             print("No captured room data to export")
+            notifyFlutterError(
+            code: "no_data",
+            message: "No captured room data available for export",
+            details: "Current captured room is nil",
+            recoverySuggestion: "Please complete a room scan before attempting to export"
+           )
             return false 
         }
         
@@ -763,6 +769,12 @@ extension ProcessInfo.ThermalState {
     private func exportToUSDZ() async -> Bool {
         guard let currentCapturedRoom = currentCapturedRoom else {
             print("No captured room data to export")
+            notifyFlutterError(
+            code: "no_data",
+            message: "No captured room data available for export",
+            details: "Current captured room is nil",
+            recoverySuggestion: "Please complete a room scan before attempting to export"
+        )
             return false
         }
 
@@ -830,6 +842,12 @@ extension ProcessInfo.ThermalState {
 
     @objc private func finishAndReturnResult() {
         guard let currentCapturedRoom = currentCapturedRoom else {
+            notifyFlutterError(
+            code: "no_data",
+            message: "No captured room data available",
+            details: "Current captured room is nil",
+            recoverySuggestion: "Please complete a room scan before finishing"
+            )   
             self.dismiss(animated: true)
             return
         }
@@ -918,6 +936,12 @@ extension ProcessInfo.ThermalState {
             }
         } catch {
             print("Failed to cleanup old scan files: \(error)")
+            notifyFlutterError(
+            code: "cleanup_failed",
+            message: "Failed to cleanup old scan files",
+            details: error.localizedDescription,
+            recoverySuggestion: "This won't affect scanning functionality, but old files may accumulate"
+        )
         }
     }
 
