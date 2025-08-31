@@ -1,3 +1,7 @@
+## 1.0.7
+
+- Documentation update
+
 ## 1.0.6
 
 - Bug Fixes

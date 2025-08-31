@@ -49,6 +49,13 @@ dependencies:
   flutter_roomplan: latest_version
 ```
 
+Add the necessary NSCameraUsageDescription key to your ios/Runner/Info.plist file, explaining the reason for camera access:
+
+```xml
+<key>NSCameraUsageDescription</key>
+<string>The camera is required to scan your room and generate a 3D model.</string>
+```
+
 ### 2️⃣ Basic Usage
 
 ```dart
