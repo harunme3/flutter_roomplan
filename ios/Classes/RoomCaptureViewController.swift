@@ -265,7 +265,6 @@ extension ProcessInfo.ThermalState {
 
     public override func viewDidLoad() {
         super.viewDidLoad()
-        performDeviceCompatibilityCheck()
         resetScanningSession()
         setupUI()
         setupRoomCaptureView()
@@ -295,7 +294,7 @@ extension ProcessInfo.ThermalState {
 
 
     // Enhanced Flutter error notification - Thread-safe version
-    private func notifyFlutterError(code: String, message: String, details: String? = nil, recoverySuggestion: String? = nil) {
+    private func notifyFlutterError(code: String, message: String, details: String? = nil, recoverySuggestion: String? = nil,autoDismiss: Bool = true) {
         // Ensure we're on the main thread when calling Flutter
         DispatchQueue.main.async {
             guard let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController else {
@@ -319,27 +318,17 @@ extension ProcessInfo.ThermalState {
             }
  
             channel.invokeMethod("onErrorDetection", arguments: arguments)
+            //on Error Cancel Scanning and remove view
+            if autoDismiss { self.cancelScanning() }
+            
             }
         }
 
-    private func performDeviceCompatibilityCheck() {
-        do {
-            try performPreflightChecks()
-            // If checks pass, continue with scanning
-        } catch let error as RoomPlanError {
-            print("Device compatibility check failed with error: \(error)")
-            handleError(error)  
-            return
-        } catch {
-            print("An unexpected error occurred: \(error)")
-            let roomPlanError = classifyError(error)
-            handleError(roomPlanError) 
-            return
-        }
-    }
+   
+  
 
   /// Performs comprehensive pre-flight checks before starting a scan
-  private func performPreflightChecks() throws {
+  private func performPreflightChecks() async throws {
     // Check iOS version
     guard #available(iOS 16.0, *) else {
       throw RoomPlanError.unsupportedVersion
@@ -353,12 +342,13 @@ extension ProcessInfo.ThermalState {
     // Check camera permission
     let cameraAuthStatus = AVCaptureDevice.authorizationStatus(for: .video)
     switch cameraAuthStatus {
-    case .denied, .restricted:
-      throw RoomPlanError.cameraPermissionDenied
-    case .notDetermined:
-      throw RoomPlanError.cameraPermissionNotDetermined
     case .authorized:
       break
+    case .notDetermined:
+      let granted = await AVCaptureDevice.requestAccess(for: .video)
+       if !granted { throw RoomPlanError.cameraPermissionDenied }
+    case .denied, .restricted:
+      throw RoomPlanError.cameraPermissionDenied
     @unknown default:
       throw RoomPlanError.cameraPermissionUnknown
     }
@@ -369,7 +359,7 @@ extension ProcessInfo.ThermalState {
     }
     
     // Check device capabilities
-    let hasRequiredFeatures = ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) || isLiDARDevice()
+    let hasRequiredFeatures = ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh)
     guard hasRequiredFeatures else {
       throw RoomPlanError.insufficientHardware
     }
@@ -422,46 +412,6 @@ extension ProcessInfo.ThermalState {
   }
 
 
-/// Detects LiDAR capability using multiple methods for better accuracy
-  private func detectLiDAR() -> Bool {
-    let supportsSceneReconstruction = ARWorldTrackingConfiguration.supportsSceneReconstruction(
-      .mesh)
-    let hasLidarByModel = isLiDARDevice()
-
-    return supportsSceneReconstruction || hasLidarByModel
-  }
-
-  /// Checks if the current device model supports LiDAR
-  private func isLiDARDevice() -> Bool {
-    var systemInfo = utsname()
-    uname(&systemInfo)
-    let modelCode = withUnsafePointer(to: &systemInfo.machine) {
-      $0.withMemoryRebound(to: CChar.self, capacity: 1) {
-        ptr in String(cString: ptr)
-      }
-    }
-
-    let model = modelCode
-
-    // iPhone models with LiDAR
-    let lidarIPhones = [
-      "iPhone13,2", "iPhone13,3", "iPhone13,4",  // iPhone 12 Pro, 12 Pro Max
-      "iPhone14,2", "iPhone14,3",  // iPhone 13 Pro, 13 Pro Max
-      "iPhone15,2", "iPhone15,3",  // iPhone 14 Pro, 14 Pro Max
-      "iPhone16,1", "iPhone16,2",  // iPhone 15 Pro, 15 Pro Max
-      "iPhone17,1", "iPhone17,2",  // iPhone 16 Pro, 16 Pro Max
-    ]
-
-    // iPad models with LiDAR
-    let lidarIPads = [
-      "iPad8,9", "iPad8,10", "iPad8,11", "iPad8,12",  // iPad Pro 11" (4th gen), 12.9" (4th gen)
-      "iPad13,4", "iPad13,5", "iPad13,6", "iPad13,7", "iPad13,8", "iPad13,9", "iPad13,10",
-      "iPad13,11",  // iPad Pro 11" (5th gen), 12.9" (5th gen)
-      "iPad14,3", "iPad14,4", "iPad14,5", "iPad14,6",  // iPad Pro 11" (6th gen), 12.9" (6th gen)
-    ]
-
-    return lidarIPhones.contains(model) || lidarIPads.contains(model)
-  }
 
     // Replace the existing button configuration in setupUI() method
     private func setupUI() {
@@ -559,7 +509,7 @@ extension ProcessInfo.ThermalState {
 
     public override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        startSession()
+        Task { await startSession() }
     }
 
     public override func viewWillDisappear(_ animated: Bool) {
@@ -567,7 +517,23 @@ extension ProcessInfo.ThermalState {
         stopSession()
     }
 
-    private func startSession() {
+    private func startSession() async {
+
+         do {
+            try await performPreflightChecks()
+            // If checks pass, continue with scanning
+        } catch let error as RoomPlanError {
+            print("Device compatibility check failed with error: \(error)")
+            handleError(error)  
+            return
+        } catch {
+            print("An unexpected error occurred: \(error)")
+            let roomPlanError = classifyError(error)
+            handleError(roomPlanError) 
+            return
+        }
+
+        
 
         isScanning = true
         roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
@@ -643,6 +609,7 @@ extension ProcessInfo.ThermalState {
         }
     }
 
+  // MARK: - RoomCaptureViewDelegate
     public func captureView(shouldPresent roomDataForProcessing: CapturedRoomData, error: Error?) -> Bool {
         return true
     }
@@ -688,7 +655,6 @@ extension ProcessInfo.ThermalState {
         print("Capture session ended with error: \(error)")
         let roomPlanError = classifyError(error)
         handleError(roomPlanError)
-        cancelScanning()
         } else {
             print("Capture session ended successfully")
         }
@@ -699,7 +665,8 @@ extension ProcessInfo.ThermalState {
       let roomPlanError = classifyError(error)
       handleError(roomPlanError)   
     }
- // MARK: - RoomCaptureSessionDelegate
+
+ // User Actions
 
     @objc private func doneScanning() {
         if isScanning {
@@ -782,7 +749,7 @@ extension ProcessInfo.ThermalState {
             message: "No captured room data available for export",
             details: "Current captured room is nil",
             recoverySuggestion: "Please complete a room scan before attempting to export"
-        )
+          )
             return false
         }
 
@@ -855,8 +822,7 @@ extension ProcessInfo.ThermalState {
             message: "No captured room data available",
             details: "Current captured room is nil",
             recoverySuggestion: "Please complete a room scan before finishing"
-            )   
-            cancelScanning()
+            )
             return
         }
 
@@ -889,8 +855,13 @@ extension ProcessInfo.ThermalState {
                     } else {
                         // One or both exports failed
                         print("Export failed - USDZ: \(usdzSuccess), JSON: \(jsonSuccess)")
-                        cancelScanning()
-                        // You might want to show an alert to the user here
+                        notifyFlutterError(
+                        code: "export_failed",
+                        message: "Room export failed",
+                        details: "USDZ Success: \(usdzSuccess), JSON Success: \(jsonSuccess)",
+                        recoverySuggestion: "Try scanning again or check file permissions",
+                        autoDismiss: false
+                        )
                     }
                     
                     
@@ -904,7 +875,13 @@ extension ProcessInfo.ThermalState {
                 }
                 print("Export failed: \(error)")
                 // Handle export failure
-                cancelScanning()
+                notifyFlutterError(
+                    code: "export_error",
+                    message: "An error occurred during export",
+                    details: error.localizedDescription,
+                    recoverySuggestion: "Try scanning again",
+                    autoDismiss: false
+                )
             }
         }
     }
