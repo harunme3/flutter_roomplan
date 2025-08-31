@@ -265,7 +265,6 @@ extension ProcessInfo.ThermalState {
 
     public override func viewDidLoad() {
         super.viewDidLoad()
-        performDeviceCompatibilityCheck()
         resetScanningSession()
         setupUI()
         setupRoomCaptureView()
@@ -322,21 +321,8 @@ extension ProcessInfo.ThermalState {
             }
         }
 
-    private func performDeviceCompatibilityCheck() {
-        do {
-            try performPreflightChecks()
-            // If checks pass, continue with scanning
-        } catch let error as RoomPlanError {
-            print("Device compatibility check failed with error: \(error)")
-            handleError(error)  
-            return
-        } catch {
-            print("An unexpected error occurred: \(error)")
-            let roomPlanError = classifyError(error)
-            handleError(roomPlanError) 
-            return
-        }
-    }
+   
+  
 
   /// Performs comprehensive pre-flight checks before starting a scan
   private func performPreflightChecks() throws {
@@ -568,6 +554,22 @@ extension ProcessInfo.ThermalState {
     }
 
     private func startSession() {
+
+         do {
+            try performPreflightChecks()
+            // If checks pass, continue with scanning
+        } catch let error as RoomPlanError {
+            print("Device compatibility check failed with error: \(error)")
+            handleError(error)  
+            return
+        } catch {
+            print("An unexpected error occurred: \(error)")
+            let roomPlanError = classifyError(error)
+            handleError(roomPlanError) 
+            return
+        }
+
+        
 
         isScanning = true
         roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
