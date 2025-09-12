@@ -244,33 +244,26 @@ extension ProcessInfo.ThermalState {
 
  public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegate, RoomCaptureSessionDelegate {
 
-    public var isMultiRoomModeEnabled: Bool = false
     private var isScanning = false
     private var roomCaptureView: RoomCaptureView!
     private var roomCaptureSessionConfig = RoomCaptureSession.Configuration()
     private var currentCapturedRoom: CapturedRoom?
 
-    // load multiple capturedRoom results to capturedRoomArray
-    var capturedRoomArray: [CapturedRoom] = []
-
-    
     public  var usdzFilePath: String?
-    public  var jsonFilePath: String?
+
 
     private let finishButton = UIButton(type: .system)
-    private let scanOtherRoomsButton = UIButton(type: .system)
     private let activityIndicator = UIActivityIndicatorView(style: .large)
     private let cancelButton = UIButton(type: .system)
     private let doneButton = UIButton(type: .system)
 
     public override func viewDidLoad() {
         super.viewDidLoad()
-        resetScanningSession()
         setupUI()
         setupRoomCaptureView()
         activityIndicator.stopAnimating()
         // Clean up old files first
-        cleanupOldScanFiles()
+        deleteAllScanFiles()
     }
 
     public static func isSupported() -> Bool {
@@ -281,8 +274,7 @@ extension ProcessInfo.ThermalState {
     }
 
 
-    // MARK: - Error Handling
-    
+
     private func handleError(_ error: RoomPlanError) {
         print("RoomPlan Error: \(error.message)")
         if let details = error.details {
@@ -293,10 +285,9 @@ extension ProcessInfo.ThermalState {
     }
 
 
-    // Enhanced Flutter error notification - Thread-safe version
-    private func notifyFlutterError(code: String, message: String, details: String? = nil, recoverySuggestion: String? = nil,autoDismiss: Bool = true) {
-        // Ensure we're on the main thread when calling Flutter
-        DispatchQueue.main.async {
+
+    private func notifyFlutterError(code: String, message: String, details: String? = nil, recoverySuggestion: String? = nil) {
+     
             guard let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController else {
                 print("Failed to get FlutterViewController for error notification")
                 return
@@ -318,102 +309,48 @@ extension ProcessInfo.ThermalState {
             }
  
             channel.invokeMethod("onErrorDetection", arguments: arguments)
-            //on Error Cancel Scanning and remove view
-            if autoDismiss { self.cancelScanning() }
-            
-            }
+    }
+  
+
+  
+// Gets available storage space in bytes
+    private func getAvailableStorage() throws -> Int64 {
+        let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let values = try documentDirectory.resourceValues(forKeys: [.volumeAvailableCapacityKey])
+        return Int64(values.volumeAvailableCapacity ?? 0)
+    }
+
+  
+// Classifies native errors into specific RoomPlanError types
+    private func classifyError(_ error: Error) -> RoomPlanError {
+        let errorDescription = error.localizedDescription.lowercased()
+
+        print("ErrorTest description: \(errorDescription)")
+        print("ErrorTest details: \(error)")
+        
+        // Check for specific error patterns
+        if errorDescription.contains("world tracking") || errorDescription.contains("not available") {
+        return .worldTrackingFailed
+        } else if errorDescription.contains("memory") || errorDescription.contains("exceeded") {
+        return .memoryPressure
+        } else if errorDescription.contains("permission") || errorDescription.contains("camera") {
+        return .cameraPermissionDenied
+        } else if errorDescription.contains("background") {
+        return .backgroundModeActive
+        } else if errorDescription.contains("thermal") || errorDescription.contains("overheat") {
+        return .deviceOverheating
+        } else if errorDescription.contains("timeout") {
+        return .timeout("Room scanning session")
+        } else if errorDescription.contains("corrupt") || errorDescription.contains("invalid") {
+        return .dataCorrupted(error.localizedDescription)
+        } else {
+        return .processingFailed(error.localizedDescription)
         }
-
-   
-  
-
-  /// Performs comprehensive pre-flight checks before starting a scan
-  private func performPreflightChecks() async throws {
-    // Check iOS version
-    guard #available(iOS 16.0, *) else {
-      throw RoomPlanError.unsupportedVersion
     }
-    
-    // Check RoomPlan availability
-    guard RoomCaptureSession.isSupported else {
-      throw RoomPlanError.roomPlanNotSupported
-    }
-    
-    // Check camera permission
-    let cameraAuthStatus = AVCaptureDevice.authorizationStatus(for: .video)
-    switch cameraAuthStatus {
-    case .authorized:
-      break
-    case .notDetermined:
-      let granted = await AVCaptureDevice.requestAccess(for: .video)
-       if !granted { throw RoomPlanError.cameraPermissionDenied }
-    case .denied, .restricted:
-      throw RoomPlanError.cameraPermissionDenied
-    @unknown default:
-      throw RoomPlanError.cameraPermissionUnknown
-    }
-    
-    // Check ARKit availability
-    guard ARWorldTrackingConfiguration.isSupported else {
-      throw RoomPlanError.arKitNotSupported
-    }
-    
-    // Check device capabilities
-    let hasRequiredFeatures = ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh)
-    guard hasRequiredFeatures else {
-      throw RoomPlanError.insufficientHardware
-    }
-    
-    // Check system resources
-    if ProcessInfo.processInfo.isLowPowerModeEnabled {
-      throw RoomPlanError.lowPowerMode
-    }
-    
-    // Check available storage (need at least 100MB for scan data)
-    let freeSpace = try getAvailableStorage()
-    if freeSpace < 100 * 1024 * 1024 { // 100MB in bytes
-      throw RoomPlanError.insufficientStorage
-    }
-  }
-  
-  /// Gets available storage space in bytes
-  private func getAvailableStorage() throws -> Int64 {
-    let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-    let values = try documentDirectory.resourceValues(forKeys: [.volumeAvailableCapacityKey])
-    return Int64(values.volumeAvailableCapacity ?? 0)
-  }
-
-  
-   /// Classifies native errors into specific RoomPlanError types
-  private func classifyError(_ error: Error) -> RoomPlanError {
-    let errorDescription = error.localizedDescription.lowercased()
-
-    print("ErrorTest description: \(errorDescription)")
-    print("ErrorTest details: \(error)")
-    
-    // Check for specific error patterns
-    if errorDescription.contains("world tracking") || errorDescription.contains("not available") {
-      return .worldTrackingFailed
-    } else if errorDescription.contains("memory") || errorDescription.contains("exceeded") {
-      return .memoryPressure
-    } else if errorDescription.contains("permission") || errorDescription.contains("camera") {
-      return .cameraPermissionDenied
-    } else if errorDescription.contains("background") {
-      return .backgroundModeActive
-    } else if errorDescription.contains("thermal") || errorDescription.contains("overheat") {
-      return .deviceOverheating
-    } else if errorDescription.contains("timeout") {
-      return .timeout("Room scanning session")
-    } else if errorDescription.contains("corrupt") || errorDescription.contains("invalid") {
-      return .dataCorrupted(error.localizedDescription)
-    } else {
-      return .processingFailed(error.localizedDescription)
-    }
-  }
 
 
 
-    // Replace the existing button configuration in setupUI() method
+// Replace the existing button configuration in setupUI() method
     private func setupUI() {
         view.backgroundColor = .white
 
@@ -427,18 +364,6 @@ extension ProcessInfo.ThermalState {
         finishButton.layer.cornerRadius = 12
         finishButton.addTarget(self, action: #selector(finishAndReturnResult), for: .touchUpInside)
 
-        // Configure Scan Other Rooms Button - Outlined style (only show on iOS 17.0+)
-        scanOtherRoomsButton.setTitle("Scan Other Rooms", for: .normal)
-        scanOtherRoomsButton.isEnabled = false
-        scanOtherRoomsButton.isHidden = true
-        scanOtherRoomsButton.alpha = 0.0
-        scanOtherRoomsButton.backgroundColor = UIColor.clear
-        scanOtherRoomsButton.setTitleColor(UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0), for: .normal)
-        scanOtherRoomsButton.layer.cornerRadius = 12
-        scanOtherRoomsButton.layer.borderWidth = 2.0
-        scanOtherRoomsButton.layer.borderColor = UIColor(red: 75/255.0, green: 58/255.0, blue: 47/255.0, alpha: 1.0).cgColor
-        scanOtherRoomsButton.addTarget(self, action: #selector(scanOtherRooms), for: .touchUpInside)
-
         // Configure Cancel and Done Buttons
         cancelButton.setTitle("Cancel", for: .normal)
         cancelButton.addTarget(self, action: #selector(cancelScanning), for: .touchUpInside)
@@ -447,7 +372,7 @@ extension ProcessInfo.ThermalState {
         doneButton.addTarget(self, action: #selector(doneScanning), for: .touchUpInside)
 
         // Add subviews
-        [finishButton, scanOtherRoomsButton, cancelButton, doneButton, activityIndicator].forEach {
+        [finishButton, cancelButton, doneButton, activityIndicator].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview($0)
         }
@@ -463,33 +388,14 @@ extension ProcessInfo.ThermalState {
             doneButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             doneButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
 
+            finishButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            finishButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30),
+            finishButton.widthAnchor.constraint(equalToConstant: 120),
+            finishButton.heightAnchor.constraint(equalToConstant: 44),
+
             activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
-
-        // Set up button constraints based on iOS version and multi-room mode
-        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-            // iOS 17.0+ with multi-room: Show both buttons side by side
-            NSLayoutConstraint.activate([
-                finishButton.trailingAnchor.constraint(equalTo: view.centerXAnchor, constant: -10),
-                finishButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
-                finishButton.widthAnchor.constraint(equalToConstant: 120),
-                finishButton.heightAnchor.constraint(equalToConstant: 44),
-
-                scanOtherRoomsButton.leadingAnchor.constraint(equalTo: view.centerXAnchor, constant: 10),
-                scanOtherRoomsButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
-                scanOtherRoomsButton.widthAnchor.constraint(equalToConstant: 160),
-                scanOtherRoomsButton.heightAnchor.constraint(equalToConstant: 44),
-            ])
-        } else {
-            // iOS 16.0 or single room mode: Only show finish button centered
-            NSLayoutConstraint.activate([
-                finishButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-                finishButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
-                finishButton.widthAnchor.constraint(equalToConstant: 120),
-                finishButton.heightAnchor.constraint(equalToConstant: 44),
-            ])
-        }
     }
 
     private func setupRoomCaptureView() {
@@ -509,7 +415,7 @@ extension ProcessInfo.ThermalState {
 
     public override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        Task { await startSession() }
+        startSession()
     }
 
     public override func viewWillDisappear(_ animated: Bool) {
@@ -518,35 +424,13 @@ extension ProcessInfo.ThermalState {
     }
 
     private func startSession() async {
-
-         do {
-            try await performPreflightChecks()
-            // If checks pass, continue with scanning
-        } catch let error as RoomPlanError {
-            print("Device compatibility check failed with error: \(error)")
-            handleError(error)  
-            return
-        } catch {
-            print("An unexpected error occurred: \(error)")
-            let roomPlanError = classifyError(error)
-            handleError(roomPlanError) 
-            return
-        }
-
-        
-
+    
         isScanning = true
         roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
-        
+
         // Hide Finish button
         finishButton.isHidden = true
         finishButton.alpha = 0.0
-
-        // Hide scan other rooms button (only relevant for iOS 17.0+ with multi-room)
-        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-            scanOtherRoomsButton.isHidden = true
-            scanOtherRoomsButton.alpha = 0.0
-        }
 
         // Show Done button again (in case it was hidden before)
         doneButton.isHidden = false
@@ -555,26 +439,12 @@ extension ProcessInfo.ThermalState {
 
     private func stopSession() {
         isScanning = false
-        
-        // Use appropriate stop method based on iOS version
-        if #available(iOS 17.0, *) {
-            roomCaptureView.captureSession.stop(pauseARSession: !isMultiRoomModeEnabled)
-        } else {
-            roomCaptureView.captureSession.stop()
-        }
+        roomCaptureView.captureSession.stop()
 
         // Show Finish button
         finishButton.isHidden = false
         UIView.animate(withDuration: 0.3) {
             self.finishButton.alpha = 1.0
-        }
-
-        // Show scan other rooms button only for iOS 17.0+ with multi-room enabled
-        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-            scanOtherRoomsButton.isHidden = false
-            UIView.animate(withDuration: 0.3) {
-                self.scanOtherRoomsButton.alpha = 1.0
-            }
         }
 
         // Hide Done button
@@ -585,32 +455,15 @@ extension ProcessInfo.ThermalState {
         }
     }
 
-    // ADDED: New method to handle scanning additional rooms in multi-room mode (iOS 17.0+ only)
-    @objc private func scanOtherRooms() {
-        // This method should only be called on iOS 17.0+ with multi-room mode
-        guard #available(iOS 17.0, *), isMultiRoomModeEnabled else {
-            return
-        }
-        
-        // Reset the current room scanning state
-        currentCapturedRoom = nil
-        
-        // Hide the buttons and start a new scanning session
-        finishButton.isEnabled = false
-        scanOtherRoomsButton.isEnabled = false
-        
-        UIView.animate(withDuration: 0.3) {
-            self.finishButton.alpha = 0.0
-            self.scanOtherRoomsButton.alpha = 0.0
-        } completion: { _ in
-            self.finishButton.isHidden = true
-            self.scanOtherRoomsButton.isHidden = true
-            self.startSession()
-        }
-    }
+ 
 
   // MARK: - RoomCaptureViewDelegate
     public func captureView(shouldPresent roomDataForProcessing: CapturedRoomData, error: Error?) -> Bool {
+        if let error = error {
+            print("Room capture failed with error: \(error)")
+            let roomPlanError = classifyError(error)
+            handleError(roomPlanError)
+        }
         return true
     }
 
@@ -622,49 +475,11 @@ extension ProcessInfo.ThermalState {
             return
         }
         currentCapturedRoom = processedResult
-        capturedRoomArray.append(processedResult)
-        finishButton.isEnabled = true
-        
-        // Only enable scan other rooms button on iOS 17.0+ with multi-room mode
-        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-            scanOtherRoomsButton.isEnabled = true
-        }
-        
+        finishButton.isEnabled = true        
         activityIndicator.stopAnimating()
         
     }
-  // MARK: - RoomCaptureSessionDelegate
-    public func captureSession(_ session: RoomCaptureSession, didAdd room: CapturedRoom) {
-        print("Room captured successfully")
-    }
-    
-    public func captureSession(_ session: RoomCaptureSession, didChange room: CapturedRoom) {
-        print("Room data updated")
-    }
-    
-    public func captureSession(_ session: RoomCaptureSession, didProvide instruction: RoomCaptureSession.Instruction) {
-        print("Instruction provided: \(instruction)")
-    }
-    
-    public func captureSession(_ session: RoomCaptureSession, didStartWith configuration: RoomCaptureSession.Configuration) {
-        print("Capture session started")
-    }
-    
-    public func captureSession(_ session: RoomCaptureSession, didEndWith data: CapturedRoomData, error: Error?) {
-        if let error = error {
-        print("Capture session ended with error: \(error)")
-        let roomPlanError = classifyError(error)
-        handleError(roomPlanError)
-        } else {
-            print("Capture session ended successfully")
-        }
-    }
 
-    public func captureSession(_ session: RoomCaptureSession, didFailWith error: Error) {
-      print("Capture session failed with error: \(error)")
-      let roomPlanError = classifyError(error)
-      handleError(roomPlanError)   
-    }
 
  // User Actions
 
@@ -673,143 +488,36 @@ extension ProcessInfo.ThermalState {
             stopSession()
         } else {
             cancelScanning()
-        }        
+        }  
         activityIndicator.startAnimating()
     }
 
    @objc public func cancelScanning() {
         print("Cancel scanning")
-        if isScanning {
-            if #available(iOS 17.0, *) {
-                roomCaptureView.captureSession.stop(pauseARSession: !isMultiRoomModeEnabled)
-            } else {
-                roomCaptureView.captureSession.stop()
-            }
-        }
-        resetScanningSession()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.dismiss(animated: true)
-        }
+        self.dismiss(animated: true)
     }
 
+    private func exportToUSDZ() async -> Bool {
 
-      private func exportToJSON() async -> Bool {
-        guard let currentCapturedRoom = currentCapturedRoom else { 
-            print("No captured room data to export")
-            notifyFlutterError(
-            code: "no_data",
-            message: "No captured room data available for export",
-            details: "Current captured room is nil",
-            recoverySuggestion: "Please complete a room scan before attempting to export"
-           )
-            return false 
-        }
-        
-        do {
-            let jsonEncoder = JSONEncoder()
-            jsonEncoder.outputFormatting = [.prettyPrinted]
-            
-            // For iOS 16.0, export single room; for iOS 17.0+ with multi-room, export array
-            let dataToExport: Data
-            if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-                dataToExport = try jsonEncoder.encode(capturedRoomArray)
-            } else {
-                dataToExport = try jsonEncoder.encode(currentCapturedRoom)
-            }
-            
+        do { 
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
-            
-            // Create the RoomDataScans directory if it doesn't exist
+
             if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
                 try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
             }
-            
-            let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).json"
+
+            let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
             let fileURL = roomScansFolder.appendingPathComponent(fileName)
+
+            try currentCapturedRoom.export(to: fileURL)
+            self.usdzFilePath = fileURL.path
             
-            try dataToExport.write(to: fileURL)
-            self.jsonFilePath = fileURL.path
-            
-            print("Successfully exported JSON file to: \(fileURL.path)")
+            print("Successfully exported USDZ file to: \(fileURL.path)")
             return true
-            
+                
         } catch {
-            print("Failed to export JSON file: \(error)")
-            return false
-        }
-    }
-
-
-    private func exportToUSDZ() async -> Bool {
-        guard let currentCapturedRoom = currentCapturedRoom else {
-            print("No captured room data to export")
-            notifyFlutterError(
-            code: "no_data",
-            message: "No captured room data available for export",
-            details: "Current captured room is nil",
-            recoverySuggestion: "Please complete a room scan before attempting to export"
-          )
-            return false
-        }
-
-        if #available(iOS 17.0, *) {
-            do {
-                let structureBuilder = StructureBuilder(options: [.beautifyObjects])
-                let capturedStructure: CapturedStructure
-                
-                // Use merge API for multi-room in iOS 17.0+, single room for others
-                if isMultiRoomModeEnabled {
-                    capturedStructure = try await structureBuilder.capturedStructure(from: capturedRoomArray)
-                } else {
-                    capturedStructure = try await structureBuilder.capturedStructure(from: [currentCapturedRoom])
-                }
-
-                let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
-
-                if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
-                    try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
-                }
-
-                let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
-                let fileURL = roomScansFolder.appendingPathComponent(fileName)
-
-                try capturedStructure.export(to: fileURL)
-                self.usdzFilePath = fileURL.path
-                
-                print("Successfully exported USDZ file to: \(fileURL.path)")
-                return true
-                
-            } catch {
-                print("Failed to export USDZ file: \(error)")
-                return false
-            }
-        } else if #available(iOS 16.0, *) {
-            // For iOS 16.0, use the single room export method
-            do {
-                let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
-
-                if !FileManager.default.fileExists(atPath: roomScansFolder.path) {
-                    try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
-                }
-
-                let fileName = "room_scan_\(Int(Date().timeIntervalSince1970)).usdz"
-                let fileURL = roomScansFolder.appendingPathComponent(fileName)
-
-                try currentCapturedRoom.export(to: fileURL)
-                self.usdzFilePath = fileURL.path
-                
-                print("Successfully exported USDZ file to: \(fileURL.path)")
-                return true
-                
-            } catch {
-                print("Failed to export USDZ file: \(error)")
-                return false
-            }
-        } else {
-            print("USDZ export is only supported on iOS 16.0 or newer")
+            print("Failed to export USDZ file: \(error)")
             return false
         }
     }
@@ -823,6 +531,7 @@ extension ProcessInfo.ThermalState {
             details: "Current captured room is nil",
             recoverySuggestion: "Please complete a room scan before finishing"
             )
+            self.dismiss(animated: true)
             return
         }
 
@@ -830,112 +539,66 @@ extension ProcessInfo.ThermalState {
         activityIndicator.startAnimating()
         finishButton.isEnabled = false
         
-        if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-            scanOtherRoomsButton.isEnabled = false
-        }
 
-    Task {
-        do {
+       Task {
+         do {
             // Export both files and wait for completion
-            let usdzSuccess = await exportToUSDZ()
-            let jsonSuccess = await exportToJSON()
-            
-            // Only call Flutter after both exports succeed
-            await MainActor.run {
-                    self.activityIndicator.stopAnimating()
-                    
-                    if usdzSuccess && jsonSuccess {
-                        // Both exports succeeded, notify Flutter
-                        if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
-                            let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
-                            channel.invokeMethod("onRoomCaptureFinished", arguments: nil)
-                        }
-                        print("Export completed successfully")
-                        self.dismiss(animated: true)
-                    } else {
-                        // One or both exports failed
-                        print("Export failed - USDZ: \(usdzSuccess), JSON: \(jsonSuccess)")
-                        notifyFlutterError(
-                        code: "export_failed",
-                        message: "Room export failed",
-                        details: "USDZ Success: \(usdzSuccess), JSON Success: \(jsonSuccess)",
-                        recoverySuggestion: "Try scanning again or check file permissions",
-                        autoDismiss: false
-                        )
-                    }
-                    
-                    
+            let usdzSuccess = await exportToUSDZ()   
+            if usdzSuccess{
+                // Both exports succeeded, notify Flutter
+                if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
+                    let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
+                    channel.invokeMethod("onRoomCaptureFinished", arguments: nil)
                 }
-        } catch {
-            await MainActor.run {
+                print("Export completed successfully")
                 self.activityIndicator.stopAnimating()
-                finishButton.isEnabled = true
-                if #available(iOS 17.0, *), isMultiRoomModeEnabled {
-                    scanOtherRoomsButton.isEnabled = true
-                }
-                print("Export failed: \(error)")
-                // Handle export failure
+                self.dismiss(animated: true)
+            } else {
+                // One or both exports failed
+                print("Export failed - USDZ: \(usdzSuccess)")
                 notifyFlutterError(
-                    code: "export_error",
-                    message: "An error occurred during export",
-                    details: error.localizedDescription,
-                    recoverySuggestion: "Try scanning again",
-                    autoDismiss: false
+                code: "export_failed",
+                message: "Room export failed",
+                details: "USDZ Success: \(usdzSuccess)",
+                recoverySuggestion: "Try scanning again or check file permissions",
                 )
+                self.activityIndicator.stopAnimating()
+                self.dismiss(animated: true)
             }
+        } catch {
+            notifyFlutterError(
+                code: "export_error",
+                message: "An error occurred during export",
+                details: error.localizedDescription,
+                recoverySuggestion: "Try scanning again",
+            )
+            self.activityIndicator.stopAnimating()
+            self.dismiss(animated: true)
         }
     }
   }
 
-
-
-      private func cleanupOldScanFiles(keepLastCount: Int = 2) {
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
-        
-        do {
-            if FileManager.default.fileExists(atPath: roomScansFolder.path) {
-                let files = try FileManager.default.contentsOfDirectory(at: roomScansFolder, includingPropertiesForKeys: [.creationDateKey])
-                
-                // Filter only .usdz and .json files
-                let scanFiles = files.filter { file in
-                    let ext = file.pathExtension.lowercased()
-                    return ext == "usdz" || ext == "json"
-                }
-                
-                // Sort by creation date (newest first)
-                let sortedFiles = scanFiles.sorted { file1, file2 in
-                    guard let date1 = try? file1.resourceValues(forKeys: [.creationDateKey]).creationDate,
-                          let date2 = try? file2.resourceValues(forKeys: [.creationDateKey]).creationDate else {
-                        return false
-                    }
-                    return date1 > date2
-                }
-                
-                // Delete files beyond the keep count
-                if sortedFiles.count > keepLastCount {
-                    let filesToDelete = Array(sortedFiles.dropFirst(keepLastCount))
-                    for file in filesToDelete {
-                        try FileManager.default.removeItem(at: file)
-                    }
-                    print("Cleaned up \(filesToDelete.count) old scan files, kept \(min(sortedFiles.count, keepLastCount)) recent files")
-                }
-            }
-        } catch {
-            print("Failed to cleanup old scan files: \(error)")
-            notifyFlutterError(
-            code: "cleanup_failed",
-            message: "Failed to cleanup old scan files",
-            details: error.localizedDescription,
-            recoverySuggestion: "This won't affect scanning functionality, but old files may accumulate"
-        )
+private func deleteAllScanFiles() {
+    let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
+    
+    do {
+        if FileManager.default.fileExists(atPath: roomScansFolder.path) {
+            try FileManager.default.removeItem(at: roomScansFolder)
+            try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
+            
+            print("Deleted all files in RoomDataScans folder")
         }
+    } catch {
+        print("Failed to delete scan files: \(error)")
+        notifyFlutterError(
+            code: "delete_failed",
+            message: "Failed to delete scan files",
+            details: error.localizedDescription,
+            recoverySuggestion: "Try restarting the app or check storage permissions"
+        )
     }
+}
 
-    private func resetScanningSession() {
-        capturedRoomArray.removeAll()
-        currentCapturedRoom = nil
-        usdzFilePath = nil
-        jsonFilePath = nil
-    }
+
 }

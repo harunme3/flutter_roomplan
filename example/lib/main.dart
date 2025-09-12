@@ -16,9 +16,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final FlutterRoomplan flutterRoomplan = FlutterRoomplan();
   bool isSupported = false;
-  bool isMultiRoomSupported = false;
   String? usdzFilePath;
-  String? jsonFilePath;
 
   @override
   void initState() {
@@ -30,10 +28,8 @@ class _MyAppState extends State<MyApp> {
       debugPrint('Room scan completed');
       // Get the USDZ and JSON file paths after scan is complete
       final usdzPath = await flutterRoomplan.getUsdzFilePath();
-      final jsonPath = await flutterRoomplan.getJsonFilePath();
       setState(() {
         usdzFilePath = usdzPath;
-        jsonFilePath = jsonPath;
       });
     });
     flutterRoomplan.onErrorDetection((
@@ -50,10 +46,9 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _checkSupport() async {
     final isSupported = await flutterRoomplan.isSupported();
-    final isMultiRoomSupported = await flutterRoomplan.isMultiRoomSupported();
+
     setState(() {
       this.isSupported = isSupported;
-      this.isMultiRoomSupported = isMultiRoomSupported;
     });
   }
 
@@ -87,39 +82,11 @@ class _MyAppState extends State<MyApp> {
                     ],
                   ),
                 ),
-              if (isMultiRoomSupported)
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Multi-Room: Supported ✅ (iOS 17.0+)',
-                        style: TextStyle(color: Colors.green),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          flutterRoomplan.startScan(enableMultiRoom: true);
-                        },
-                        child: Text('Start Multi-Room Scan'),
-                      ),
-                    ],
-                  ),
-                ),
               if (usdzFilePath != null)
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
                     'Scanned USDZ file:\n$usdzFilePath',
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              if (jsonFilePath != null)
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Scanned JSON file:\n$jsonFilePath',
                     textAlign: TextAlign.center,
                   ),
                 ),

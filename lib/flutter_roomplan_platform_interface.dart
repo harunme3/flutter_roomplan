@@ -31,12 +31,8 @@ abstract class FlutterRoomplanPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<void> startScan({bool enableMultiRoom = false}) {
+  Future<void> startScan() {
     throw UnimplementedError('startScan() has not been implemented.');
-  }
-
-  Future<void> stopScan() {
-    throw UnimplementedError('stopScan() has not been implemented.');
   }
 
   void onRoomCaptureFinished(VoidCallback handler) {
@@ -53,17 +49,7 @@ abstract class FlutterRoomplanPlatform extends PlatformInterface {
     throw UnimplementedError('isSupported() has not been implemented.');
   }
 
-  Future<bool> isMultiRoomSupported() {
-    throw UnimplementedError(
-      'isMultiRoomSupported() has not been implemented.',
-    );
-  }
-
   Future<String?> getUsdzFilePath() {
     throw UnimplementedError('getUsdzFilePath() has not been implemented.');
-  }
-
-  Future<String?> getJsonFilePath() {
-    throw UnimplementedError('getJsonFilePath() has not been implemented.');
   }
 }
