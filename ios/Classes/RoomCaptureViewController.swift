@@ -4,8 +4,6 @@ import Flutter
 import ARKit
 import AVFoundation
 
-
-
 /// Comprehensive error types for RoomPlan operations with detailed debugging information
 @available(iOS 16.0, *)
 enum RoomPlanError: Error {
@@ -186,7 +184,6 @@ enum RoomPlanError: Error {
     }
 }
 
-
 // MARK: - Helper Functions
 
 private func getDeviceModel() -> String {
@@ -241,16 +238,15 @@ extension ProcessInfo.ThermalState {
     }
 }
 
-
- public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegate, RoomCaptureSessionDelegate {
+@available(iOS 16.0, *)
+public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegate, RoomCaptureSessionDelegate {
 
     private var isScanning = false
     private var roomCaptureView: RoomCaptureView!
     private var roomCaptureSessionConfig = RoomCaptureSession.Configuration()
     private var currentCapturedRoom: CapturedRoom?
 
-    public  var usdzFilePath: String?
-
+    public var usdzFilePath: String?
 
     private let finishButton = UIButton(type: .system)
     private let activityIndicator = UIActivityIndicatorView(style: .large)
@@ -273,8 +269,6 @@ extension ProcessInfo.ThermalState {
         return false
     }
 
-
-
     private func handleError(_ error: RoomPlanError) {
         print("RoomPlan Error: \(error.message)")
         if let details = error.details {
@@ -284,10 +278,9 @@ extension ProcessInfo.ThermalState {
         notifyFlutterError(code: error.code, message: error.message, details: error.details, recoverySuggestion: error.recoverySuggestion)
     }
 
-
-
     private func notifyFlutterError(code: String, message: String, details: String? = nil, recoverySuggestion: String? = nil) {
-     
+        // FIX 1: Use main thread for UI operations
+        DispatchQueue.main.async { [weak self] in
             guard let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController else {
                 print("Failed to get FlutterViewController for error notification")
                 return
@@ -307,21 +300,72 @@ extension ProcessInfo.ThermalState {
             if let recoverySuggestion = recoverySuggestion {
                 arguments["recoverySuggestion"] = recoverySuggestion
             }
- 
+            
             channel.invokeMethod("onErrorDetection", arguments: arguments)
+        }
     }
-  
 
-  
-// Gets available storage space in bytes
+    // FIX 2: Add proper permission checking
+    private func checkPermissions() async -> Bool {
+        // Check camera permission
+        let cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
+        switch cameraStatus {
+        case .denied, .restricted:
+            handleError(.cameraPermissionDenied)
+            return false
+        case .notDetermined:
+            let granted = await AVCaptureDevice.requestAccess(for: .video)
+            if !granted {
+                handleError(.cameraPermissionDenied)
+                return false
+            }
+        case .authorized:
+            break
+        @unknown default:
+            handleError(.cameraPermissionUnknown)
+            return false
+        }
+        
+        // Check device capabilities
+        guard RoomCaptureSession.isSupported else {
+            handleError(.roomPlanNotSupported)
+            return false
+        }
+        
+        guard ARWorldTrackingConfiguration.isSupported else {
+            handleError(.arKitNotSupported)
+            return false
+        }
+        
+        // Check storage space
+        do {
+            let availableStorage = try getAvailableStorage()
+            if availableStorage < 100 * 1024 * 1024 { // 100MB
+                handleError(.insufficientStorage)
+                return false
+            }
+        } catch {
+            handleError(.insufficientStorage)
+            return false
+        }
+        
+        // Check low power mode
+        if ProcessInfo.processInfo.isLowPowerModeEnabled {
+            handleError(.lowPowerMode)
+            return false
+        }
+        
+        return true
+    }
+    
+    // Gets available storage space in bytes
     private func getAvailableStorage() throws -> Int64 {
         let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let values = try documentDirectory.resourceValues(forKeys: [.volumeAvailableCapacityKey])
         return Int64(values.volumeAvailableCapacity ?? 0)
     }
 
-  
-// Classifies native errors into specific RoomPlanError types
+    // Classifies native errors into specific RoomPlanError types
     private func classifyError(_ error: Error) -> RoomPlanError {
         let errorDescription = error.localizedDescription.lowercased()
 
@@ -330,27 +374,25 @@ extension ProcessInfo.ThermalState {
         
         // Check for specific error patterns
         if errorDescription.contains("world tracking") || errorDescription.contains("not available") {
-        return .worldTrackingFailed
+            return .worldTrackingFailed
         } else if errorDescription.contains("memory") || errorDescription.contains("exceeded") {
-        return .memoryPressure
+            return .memoryPressure
         } else if errorDescription.contains("permission") || errorDescription.contains("camera") {
-        return .cameraPermissionDenied
+            return .cameraPermissionDenied
         } else if errorDescription.contains("background") {
-        return .backgroundModeActive
+            return .backgroundModeActive
         } else if errorDescription.contains("thermal") || errorDescription.contains("overheat") {
-        return .deviceOverheating
+            return .deviceOverheating
         } else if errorDescription.contains("timeout") {
-        return .timeout("Room scanning session")
+            return .timeout("Room scanning session")
         } else if errorDescription.contains("corrupt") || errorDescription.contains("invalid") {
-        return .dataCorrupted(error.localizedDescription)
+            return .dataCorrupted(error.localizedDescription)
         } else {
-        return .processingFailed(error.localizedDescription)
+            return .processingFailed(error.localizedDescription)
         }
     }
 
-
-
-// Replace the existing button configuration in setupUI() method
+    // Replace the existing button configuration in setupUI() method
     private func setupUI() {
         view.backgroundColor = .white
 
@@ -415,7 +457,10 @@ extension ProcessInfo.ThermalState {
 
     public override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        startSession()
+        // FIX 3: Use async properly for startSession
+        Task {
+            await startSession()
+        }
     }
 
     public override func viewWillDisappear(_ animated: Bool) {
@@ -423,21 +468,45 @@ extension ProcessInfo.ThermalState {
         stopSession()
     }
 
+    // FIX 4: Properly implement async startSession with permission checks
     private func startSession() async {
-    
-        isScanning = true
-        roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
+        // Check permissions before starting
+        guard await checkPermissions() else {
+            return
+        }
+        
+        // Check if session is already running
+        guard !isScanning else {
+            handleError(.sessionInProgress)
+            return
+        }
+        
+        do {
+            isScanning = true
+            roomCaptureView.captureSession.run(configuration: roomCaptureSessionConfig)
 
-        // Hide Finish button
-        finishButton.isHidden = true
-        finishButton.alpha = 0.0
+            // Update UI on main thread
+            await MainActor.run {
+                // Hide Finish button
+                finishButton.isHidden = true
+                finishButton.alpha = 0.0
 
-        // Show Done button again (in case it was hidden before)
-        doneButton.isHidden = false
-        doneButton.alpha = 1.0
+                // Show Done button again (in case it was hidden before)
+                doneButton.isHidden = false
+                doneButton.alpha = 1.0
+            }
+        } catch {
+            isScanning = false
+            let roomPlanError = classifyError(error)
+            handleError(roomPlanError)
+        }
     }
 
     private func stopSession() {
+        guard isScanning else {
+            return // Don't handle as error, just return silently
+        }
+        
         isScanning = false
         roomCaptureView.captureSession.stop()
 
@@ -455,9 +524,7 @@ extension ProcessInfo.ThermalState {
         }
     }
 
- 
-
-  // MARK: - RoomCaptureViewDelegate
+    // MARK: - RoomCaptureViewDelegate
     public func captureView(shouldPresent roomDataForProcessing: CapturedRoomData, error: Error?) -> Bool {
         if let error = error {
             print("Room capture failed with error: \(error)")
@@ -475,13 +542,15 @@ extension ProcessInfo.ThermalState {
             return
         }
         currentCapturedRoom = processedResult
-        finishButton.isEnabled = true        
-        activityIndicator.stopAnimating()
         
+        // FIX 5: Update UI on main thread
+        DispatchQueue.main.async {
+            self.finishButton.isEnabled = true
+            self.activityIndicator.stopAnimating()
+        }
     }
 
-
- // User Actions
+    // User Actions
 
     @objc private func doneScanning() {
         if isScanning {
@@ -492,12 +561,20 @@ extension ProcessInfo.ThermalState {
         activityIndicator.startAnimating()
     }
 
-   @objc public func cancelScanning() {
+    @objc public func cancelScanning() {
         print("Cancel scanning")
+        // FIX 6: Stop session before dismissing
+        if isScanning {
+            stopSession()
+        }
         self.dismiss(animated: true)
     }
 
     private func exportToUSDZ() async -> Bool {
+        guard let currentCapturedRoom = currentCapturedRoom else {
+            print("No captured room data to export")
+            return false
+        }
 
         do { 
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -522,14 +599,13 @@ extension ProcessInfo.ThermalState {
         }
     }
 
-
     @objc private func finishAndReturnResult() {
         guard let currentCapturedRoom = currentCapturedRoom else {
             notifyFlutterError(
-            code: "no_data",
-            message: "No captured room data available",
-            details: "Current captured room is nil",
-            recoverySuggestion: "Please complete a room scan before finishing"
+                code: "no_data",
+                message: "No captured room data available",
+                details: "Current captured room is nil",
+                recoverySuggestion: "Please complete a room scan before finishing"
             )
             self.dismiss(animated: true)
             return
@@ -539,66 +615,69 @@ extension ProcessInfo.ThermalState {
         activityIndicator.startAnimating()
         finishButton.isEnabled = false
         
-
-       Task {
-         do {
-            // Export both files and wait for completion
-            let usdzSuccess = await exportToUSDZ()   
-            if usdzSuccess{
-                // Both exports succeeded, notify Flutter
-                if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
-                    let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
-                    channel.invokeMethod("onRoomCaptureFinished", arguments: nil)
+        Task {
+            do {
+                // Export files and wait for completion
+                let usdzSuccess = await exportToUSDZ()   
+                
+                await MainActor.run {
+                    if usdzSuccess {
+                        // Export succeeded, notify Flutter
+                        if let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController {
+                            let channel = FlutterMethodChannel(name: "rkg/flutter_roomplan", binaryMessenger: controller.binaryMessenger)
+                            channel.invokeMethod("onRoomCaptureFinished", arguments: nil)
+                        }
+                        print("Export completed successfully")
+                        self.activityIndicator.stopAnimating()
+                        self.dismiss(animated: true)
+                    } else {
+                        // Export failed
+                        print("Export failed - USDZ: \(usdzSuccess)")
+                        self.notifyFlutterError(
+                            code: "export_failed",
+                            message: "Room export failed",
+                            details: "USDZ Success: \(usdzSuccess)",
+                            recoverySuggestion: "Try scanning again or check file permissions"
+                        )
+                        self.activityIndicator.stopAnimating()
+                        self.dismiss(animated: true)
+                    }
                 }
-                print("Export completed successfully")
-                self.activityIndicator.stopAnimating()
-                self.dismiss(animated: true)
-            } else {
-                // One or both exports failed
-                print("Export failed - USDZ: \(usdzSuccess)")
-                notifyFlutterError(
-                code: "export_failed",
-                message: "Room export failed",
-                details: "USDZ Success: \(usdzSuccess)",
-                recoverySuggestion: "Try scanning again or check file permissions",
-                )
-                self.activityIndicator.stopAnimating()
-                self.dismiss(animated: true)
+            } catch {
+                await MainActor.run {
+                    self.notifyFlutterError(
+                        code: "export_error",
+                        message: "An error occurred during export",
+                        details: error.localizedDescription,
+                        recoverySuggestion: "Try scanning again"
+                    )
+                    self.activityIndicator.stopAnimating()
+                    self.dismiss(animated: true)
+                }
+            }
+        }
+    }
+
+    // FIX 7: Move deleteAllScanFiles inside the class and add proper error handling
+    private func deleteAllScanFiles() {
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
+        
+        do {
+            if FileManager.default.fileExists(atPath: roomScansFolder.path) {
+                try FileManager.default.removeItem(at: roomScansFolder)
+                try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
+                
+                print("Deleted all files in RoomDataScans folder")
             }
         } catch {
+            print("Failed to delete scan files: \(error)")
             notifyFlutterError(
-                code: "export_error",
-                message: "An error occurred during export",
+                code: "delete_failed",
+                message: "Failed to delete scan files",
                 details: error.localizedDescription,
-                recoverySuggestion: "Try scanning again",
+                recoverySuggestion: "Try restarting the app or check storage permissions"
             )
-            self.activityIndicator.stopAnimating()
-            self.dismiss(animated: true)
         }
     }
-  }
-
-private func deleteAllScanFiles() {
-    let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-    let roomScansFolder = documentsPath.appendingPathComponent("RoomDataScans")
-    
-    do {
-        if FileManager.default.fileExists(atPath: roomScansFolder.path) {
-            try FileManager.default.removeItem(at: roomScansFolder)
-            try FileManager.default.createDirectory(at: roomScansFolder, withIntermediateDirectories: true)
-            
-            print("Deleted all files in RoomDataScans folder")
-        }
-    } catch {
-        print("Failed to delete scan files: \(error)")
-        notifyFlutterError(
-            code: "delete_failed",
-            message: "Failed to delete scan files",
-            details: error.localizedDescription,
-            recoverySuggestion: "Try restarting the app or check storage permissions"
-        )
-    }
-}
-
-
 }
