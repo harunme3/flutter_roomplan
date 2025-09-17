@@ -511,6 +511,7 @@ public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegat
         
         isScanning = false
         roomCaptureView.captureSession.stop()
+        print("Scanning stopped")
 
         // Show Finish button
         finishButton.isHidden = false
@@ -631,6 +632,7 @@ public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegat
                         }
                         print("Export completed successfully")
                         self.activityIndicator.stopAnimating()
+                        roomCaptureView.captureSession.stop()
                         self.dismiss(animated: true)
                     } else {
                         // Export failed
