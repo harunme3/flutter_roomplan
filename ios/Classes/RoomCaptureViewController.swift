@@ -413,6 +413,8 @@ public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegat
         doneButton.setTitle("Done", for: .normal)
         doneButton.addTarget(self, action: #selector(doneScanning), for: .touchUpInside)
 
+        activityIndicator.hidesWhenStopped = true
+
         // Add subviews
         [finishButton, cancelButton, doneButton, activityIndicator].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
