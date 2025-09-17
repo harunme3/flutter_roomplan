@@ -279,7 +279,7 @@ public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegat
     }
 
     private func notifyFlutterError(code: String, message: String, details: String? = nil, recoverySuggestion: String? = nil) {
-        // FIX 1: Use main thread for UI operations
+        
         DispatchQueue.main.async { [weak self] in
             guard let controller = UIApplication.shared.delegate?.window??.rootViewController as? FlutterViewController else {
                 print("Failed to get FlutterViewController for error notification")
@@ -303,7 +303,8 @@ public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegat
             
             channel.invokeMethod("onErrorDetection", arguments: arguments)
 
-            self.dismiss(animated: true)
+            guard let strongSelf = self else { return }
+            strongSelf.dismiss(animated: true)
 
         }
     }
