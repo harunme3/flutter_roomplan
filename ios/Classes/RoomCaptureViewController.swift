@@ -302,6 +302,9 @@ public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegat
             }
             
             channel.invokeMethod("onErrorDetection", arguments: arguments)
+
+            self.dismiss(animated: true)
+
         }
     }
 
@@ -632,7 +635,6 @@ public class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegat
                         }
                         print("Export completed successfully")
                         self.activityIndicator.stopAnimating()
-                        roomCaptureView.captureSession.stop()
                         self.dismiss(animated: true)
                     } else {
                         // Export failed
