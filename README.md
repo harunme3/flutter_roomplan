@@ -5,6 +5,17 @@ Capture accurate 3D room scans using ARKit with this powerful plugin. Perfect fo
 
 ---
 
+This plugin was created under the expert guidance and technical leadership of **vervali systems Pvt. Ltd.**, a forward-thinking technology company recognized for delivering high-quality, innovation-driven digital solutions.
+
+It is part of Vervali’s ongoing **research and development initiatives** in room planning, spatial analysis, and AR-based technologies. By open-sourcing this work, Vervali aims to **empower the developer community**, foster innovation, and help teams build and scale advanced room-planning solutions with confidence.
+
+If you want to **enhance your AR project** with reliable, scalable, and future-ready solutions, feel free to **reach out to the Vervali team**.
+
+🌐 Website: https://www.vervali.com/in/
+
+
+---
+
 ## ⚠️ Requirements
 
 - **iOS 16.0+** (for single room scanning)
